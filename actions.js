@@ -240,5 +240,26 @@ export function setupActions(instance) {
                 }
             },
         },
+        loadPreset: {
+            name: "Load Preset",
+            description: "Load a previously saved preset",
+            options: [
+                {
+                    type: 'number',
+                    label: 'Preset',
+                    id: 'targetPreset',
+                    default: 1,
+                    min: 0,
+                },
+            ],
+            callback: async (action, context) => {
+                var parsedPreset = await instance.parseVariablesInString(action.options.targetPreset);
+                instance.ws.send(
+                    JSON.stringify({
+                        "ps": parsedPreset
+                    })
+                )
+            },
+        },
     })
 }
