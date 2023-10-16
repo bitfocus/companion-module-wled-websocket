@@ -3,7 +3,7 @@
 	"name": "wled-ws",
 	"shortname": "wled",
 	"description": "Module for controlling WLED devices",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-wled-ws.git",
 	"bugs": "https://github.com/bitfocus/companion-module-wled-ws/issues",
