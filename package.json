@@ -15,7 +15,7 @@
 	},
 	"repository": {
 		"type": "git",
-		"url": "git+https://github.com/bitfocus/companion-module-microsoft-teams.git"
+		"url": "git+https://github.com/bitfocus/companion-module-wled-websocket.git"
 	},
 	"devDependencies": {
 		"@companion-module/tools": "^1.0.2"
