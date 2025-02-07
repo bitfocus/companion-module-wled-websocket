@@ -1,9 +1,9 @@
 {
-	"id": "wled-ws",
-	"name": "wled-ws",
+	"id": "wled-websocket",
+	"name": "wled-websocket",
 	"shortname": "wled",
 	"description": "Module for controlling WLED devices",
-	"version": "1.0.1",
+	"version": "0.0.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-wled-websocket.git",
 	"bugs": "https://github.com/bitfocus/companion-module-wled-websocket/issues",
@@ -13,7 +13,7 @@
 			"email": "leon.reucher@ultimate-technology.de"
 		}
 	],
-	"legacyIds": [],
+	"legacyIds": ["wled-ws"],
 	"runtime": {
 		"type": "node18",
 		"api": "nodejs-ipc",

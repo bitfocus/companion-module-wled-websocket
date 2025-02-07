@@ -1,6 +1,6 @@
 {
-	"name": "wled-ws",
-	"version": "1.0.1",
+	"name": "wled-websocket",
+	"version": "1.0.3",
 	"main": "index.js",
 	"type": "module",
 	"scripts": {
