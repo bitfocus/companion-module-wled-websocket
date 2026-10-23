@@ -77,5 +77,15 @@ export function parseWLEDVariables(instance, data) {
 		variables['uptime'] = data.info.uptime ?? 'unknown'
 		variables['ip_address'] = data.info.ip ?? 'unknown'
 	}
-	instance.setVariableValues(variables)
+
+	// Only send values that differ from what Companion already has
+	let changedVariables = {}
+	for (const [variableId, value] of Object.entries(variables)) {
+		if (instance.getVariableValue(variableId) !== value) {
+			changedVariables[variableId] = value
+		}
+	}
+	if (Object.keys(changedVariables).length > 0) {
+		instance.setVariableValues(changedVariables)
+	}
 }
