@@ -30,7 +30,7 @@ Simply type in the IP of the WLED controller in the module configuration and you
 - `$(wled-websocket:brightness)` - Global Brightness
 - `$(wled-websocket:preset)` - Current Preset
 - `$(wled-websocket:version)` - WLED Version
-- `$(wled-websocket:processor)` - WLED Processor
+- `$(wled-websocket:processor)` - WLED Processor (chip model, e.g. ESP32-D0WD-V3)
 - `$(wled-websocket:led_count)` - LED Count
 - `$(wled-websocket:current)` - Current (mA)
 - `$(wled-websocket:max_current)` - Max Current (mA)
@@ -45,7 +45,7 @@ For each segment (replace X with segment number, starting at 1):
 
 - `$(wled-websocket:segment_X_power)` - Segment X Power
 - `$(wled-websocket:segment_X_brightness)` - Segment X Brightness
-- `$(wled-websocket:segment_X_color)` - Segment X Color
+- `$(wled-websocket:segment_X_color)` - Segment X Color (primary color as #RRGGBB)
 - `$(wled-websocket:segment_X_effect)` - Segment X Effect
 - `$(wled-websocket:segment_X_effect_speed)` - Segment X Effect Speed
 - `$(wled-websocket:segment_X_effect_intensity)` - Segment X Effect Intensity

@@ -24,10 +24,26 @@ export function setupVariables(instance) {
 			{ variableId: `segment_${i + 1}_effect_intensity`, name: `Segment ${i + 1} Effect Intensity` },
 			{ variableId: `segment_${i + 1}_effect_custom_1`, name: `Segment ${i + 1} Effect Custom Slider 1` },
 			{ variableId: `segment_${i + 1}_effect_custom_2`, name: `Segment ${i + 1} Effect Custom Slider 2` },
-			{ variableId: `segment_${i + 1}_effect_custom_3`, name: `Segment ${i + 1} Effect Custom Slider 3` }
+			{ variableId: `segment_${i + 1}_effect_custom_3`, name: `Segment ${i + 1} Effect Custom Slider 3` },
 		)
 	}
 	instance.setVariableDefinitions(variables)
+}
+
+// WLED reports segment colors as `col`: [primary, secondary, tertiary], each [r, g, b] or [r, g, b, w].
+// Returns the primary color as "#RRGGBB".
+function primaryColorHex(col) {
+	const primary = col?.[0]
+	if (typeof primary === 'string') return '#' + primary.slice(0, 6).toUpperCase()
+	if (!Array.isArray(primary) || primary.length < 3) return undefined
+	return (
+		'#' +
+		primary
+			.slice(0, 3)
+			.map((c) => Number(c).toString(16).padStart(2, '0'))
+			.join('')
+			.toUpperCase()
+	)
 }
 
 export function parseWLEDVariables(instance, data) {
@@ -35,12 +51,12 @@ export function parseWLEDVariables(instance, data) {
 	if (data.state != null) {
 		variables['power'] = data.state.on ?? 'unknown'
 		variables['brightness'] = data.state.bri ?? 'unknown'
-		variables['preset'] = data.state.ps == -1 ? 'none' : data.state.ps ?? 'unknown'
+		variables['preset'] = data.state.ps == -1 ? 'none' : (data.state.ps ?? 'unknown')
 		if (data.state.seg != null) {
 			for (let i = 0; i < instance.segmentCount; i++) {
 				variables[`segment_${i + 1}_power`] = data.state.seg[i]?.on ?? 'unknown'
 				variables[`segment_${i + 1}_brightness`] = data.state.seg[i]?.bri ?? 'unknown'
-				variables[`segment_${i + 1}_color`] = data.state.seg[i]?.color ?? 'unknown'
+				variables[`segment_${i + 1}_color`] = primaryColorHex(data.state.seg[i]?.col) ?? 'unknown'
 				variables[`segment_${i + 1}_effect`] = data.state.seg[i]?.fx ?? 'unknown'
 				variables[`segment_${i + 1}_effect_speed`] = data.state.seg[i]?.sx ?? 'unknown'
 				variables[`segment_${i + 1}_effect_intensity`] = data.state.seg[i]?.ix ?? 'unknown'
@@ -52,7 +68,7 @@ export function parseWLEDVariables(instance, data) {
 	}
 	if (data.info != null) {
 		variables['version'] = data.info.ver ?? 'unknown'
-		variables['processor'] = data.info.release ?? 'unknown'
+		variables['processor'] = data.info.arch ?? 'unknown'
 		variables['led_count'] = data.info.leds.count ?? 'unknown'
 		variables['current'] = data.info.leds.pwr ?? 'unknown'
 		variables['max_current'] = data.info.leds.maxpwr ?? 'unknown'
