@@ -111,5 +111,14 @@ export function setupFeedbacks(instance) {
                 }
             }
         },
+        liveDataOverride: {
+            type: 'boolean',
+            name: 'Live Data Override',
+            description: 'True when live data override is enabled (whether temporary, or until reboot), false when it is not.',
+            options: [],
+            callback: (feedback, context) => {
+                return !!instance.lor;
+            }
+        },
     })
 }

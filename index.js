@@ -16,6 +16,7 @@ class WLEDInstance extends InstanceBase {
 		this.segmentCount = 0;
 		this.segments = [];
 		this.isOn = false;
+		this.lor = 0;
 		this.brightness = 0;
 
 		this.initActions()
@@ -88,6 +89,7 @@ class WLEDInstance extends InstanceBase {
 
 	parseWLEDState(data) {
 		this.isOn = data.on;
+		this.lor = data.lor;
 		this.brightness = data.bri;
 		if(this.segmentCount != data.seg.length) {
 			this.segmentCount = data.seg.length;
