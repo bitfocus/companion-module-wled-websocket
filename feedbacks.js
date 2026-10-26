@@ -25,9 +25,7 @@ export function setupFeedbacks(instance) {
 				},
 			],
 			callback: (feedback, context) => {
-				if (feedback.options.selectedSegment <= instance.segmentCount) {
-					return instance.segments[feedback.options.selectedSegment].on
-				}
+				return instance.getSegment(feedback.options.selectedSegment)?.on === true
 			},
 		},
 		brightness: {
@@ -36,7 +34,7 @@ export function setupFeedbacks(instance) {
 			description: 'Returns the current brightness (0-255)',
 			options: [],
 			callback: (feedback, context) => {
-				return { text: instance.brightness }
+				return { text: String(instance.brightness) }
 			},
 		},
 		segBrightness: {
@@ -53,9 +51,11 @@ export function setupFeedbacks(instance) {
 				},
 			],
 			callback: (feedback, context) => {
-				if (feedback.options.selectedSegment <= instance.segmentCount) {
-					return { text: instance.segments[feedback.options.selectedSegment].bri }
+				const segment = instance.getSegment(feedback.options.selectedSegment)
+				if (segment) {
+					return { text: String(segment.bri) }
 				}
+				return {}
 			},
 		},
 		segFxParam: {
@@ -85,10 +85,11 @@ export function setupFeedbacks(instance) {
 				},
 			],
 			callback: (feedback, context) => {
-				if (feedback.options.selectedSegment <= instance.segmentCount) {
-					var parameter = feedback.options.selectedParameter
-					return { text: instance.segments[feedback.options.selectedSegment][parameter] }
+				const segment = instance.getSegment(feedback.options.selectedSegment)
+				if (segment) {
+					return { text: String(segment[feedback.options.selectedParameter]) }
 				}
+				return {}
 			},
 		},
 		segColor: {
@@ -105,10 +106,11 @@ export function setupFeedbacks(instance) {
 				},
 			],
 			callback: (feedback, context) => {
-				if (feedback.options.selectedSegment <= instance.segmentCount) {
-					const colorArray = instance.segments[feedback.options.selectedSegment].col[0]
+				const colorArray = instance.getSegment(feedback.options.selectedSegment)?.col?.[0]
+				if (Array.isArray(colorArray)) {
 					return { bgcolor: combineRgb(colorArray[0], colorArray[1], colorArray[2]) }
 				}
+				return {}
 			},
 		},
 		liveDataOverride: {

@@ -1,18 +1,20 @@
-import { InstanceBase, runEntrypoint, InstanceStatus } from '@companion-module/base'
+import { InstanceBase, InstanceStatus } from '@companion-module/base'
 import WebSocket from 'ws'
 import { upgradeScripts } from './upgrade.js'
 import { setupActions } from './actions.js'
 import { setupFeedbacks } from './feedbacks.js'
 import { setupVariables, parseWLEDVariables } from './variables.js'
 
-class WLEDInstance extends InstanceBase {
+// How often to ping WLED. If no pong arrives before the next ping, the connection is considered dead.
+const HEARTBEAT_INTERVAL = 5000
+
+export const UpgradeScripts = upgradeScripts
+
+export default class WLEDInstance extends InstanceBase {
 	isInitialized = false
 
 	async init(config) {
 		this.config = config
-
-		this.initWebSocket()
-		this.isInitialized = true
 
 		this.segmentCount = 0
 		this.segments = []
@@ -23,6 +25,9 @@ class WLEDInstance extends InstanceBase {
 		this.initActions()
 		this.initFeedbacks()
 		this.initVariables()
+
+		this.isInitialized = true
+		this.initWebSocket()
 	}
 
 	async destroy() {
@@ -31,15 +36,7 @@ class WLEDInstance extends InstanceBase {
 			clearTimeout(this.reconnect_timer)
 			this.reconnect_timer = null
 		}
-		if (this.polling_timer) {
-			clearInterval(this.polling_timer)
-			this.polling_timer = null
-		}
-
-		if (this.ws) {
-			this.ws.close(1000)
-			delete this.ws
-		}
+		this.closeWebSocket()
 	}
 
 	async configUpdated(config) {
@@ -58,68 +55,103 @@ class WLEDInstance extends InstanceBase {
 		}
 	}
 
+	// Stops the timers and closes the current socket without letting its events affect the instance
+	closeWebSocket() {
+		if (this.polling_timer) {
+			clearInterval(this.polling_timer)
+			this.polling_timer = null
+		}
+		if (this.heartbeat_timer) {
+			clearInterval(this.heartbeat_timer)
+			this.heartbeat_timer = null
+		}
+		if (this.ws) {
+			this.ws.removeAllListeners()
+			// Keep a no-op error listener so a late socket error can't crash the process
+			this.ws.on('error', () => {})
+			this.ws.terminate()
+			delete this.ws
+		}
+	}
+
 	initWebSocket() {
 		if (this.reconnect_timer) {
 			clearTimeout(this.reconnect_timer)
 			this.reconnect_timer = null
 		}
-		if (this.polling_timer) {
-			clearInterval(this.polling_timer)
-			this.polling_timer = null
-		}
+		this.closeWebSocket()
 
-		const url = 'ws://' + this.config.targetIp + '/ws'
-		if (!url || !this.config.targetIp) {
+		if (!this.config.targetIp) {
 			this.updateStatus(InstanceStatus.BadConfig, `IP address is missing`)
 			return
 		}
 
 		this.updateStatus(InstanceStatus.Connecting)
 
-		if (this.ws) {
-			this.ws.close(1000)
-			delete this.ws
-		}
-		this.ws = new WebSocket(url)
+		const ws = new WebSocket('ws://' + this.config.targetIp + '/ws')
+		this.ws = ws
 
-		this.ws.on('open', () => {
+		ws.on('open', () => {
 			this.updateStatus(InstanceStatus.Ok)
+
+			ws.isAlive = true
+			this.heartbeat_timer = setInterval(() => {
+				if (!ws.isAlive) {
+					this.log('warn', 'No response from WLED, closing connection')
+					ws.terminate()
+					return
+				}
+				ws.isAlive = false
+				ws.ping()
+			}, HEARTBEAT_INTERVAL)
+
 			if (this.config.polling && this.config.interval > 0) {
 				this.polling_timer = setInterval(() => {
-					if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-						this.ws.send('{"v":true}')
-					}
+					this.send({ v: true })
 				}, this.config.interval)
 			}
 		})
-		this.ws.on('close', (code) => {
+		ws.on('pong', () => {
+			ws.isAlive = true
+		})
+		ws.on('close', (code) => {
+			this.closeWebSocket()
 			this.updateStatus(InstanceStatus.Disconnected, `Connection closed with code ${code}`)
 			this.maybeReconnect()
 		})
 
-		this.ws.on('message', this.messageReceivedFromWebSocket.bind(this))
+		ws.on('message', this.messageReceivedFromWebSocket.bind(this))
 
-		this.ws.on('error', (data) => {
+		ws.on('error', (data) => {
 			this.log('error', `WebSocket error: ${data}`)
 		})
+	}
+
+	send(payload) {
+		if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+			this.log('warn', 'Not connected to WLED, command not sent')
+			return
+		}
+		this.ws.send(JSON.stringify(payload))
 	}
 
 	parseWLEDState(data) {
 		this.isOn = data.on
 		this.lor = data.lor
 		this.brightness = data.bri
-		if (this.segmentCount != data.seg.length) {
-			this.segmentCount = data.seg.length
+		const segments = Array.isArray(data.seg) ? data.seg : []
+		if (this.segmentCount != segments.length) {
+			this.segmentCount = segments.length
 			this.initActions()
 			this.initFeedbacks()
 			this.initVariables()
 		}
-		this.segments = data.seg
-		this.checkFeedbacks()
+		this.segments = segments
+		this.checkAllFeedbacks()
 	}
 
 	parseWLEDInfo(data) {
-		this.rgbw = data.leds.rgbw
+		this.rgbw = data.leds?.rgbw
 	}
 
 	messageReceivedFromWebSocket(data) {
@@ -127,7 +159,7 @@ class WLEDInstance extends InstanceBase {
 		try {
 			msgValue = JSON.parse(data)
 		} catch (e) {
-			msgValue = data
+			return
 		}
 		if (msgValue.state != null) {
 			this.parseWLEDState(msgValue.state)
@@ -136,6 +168,12 @@ class WLEDInstance extends InstanceBase {
 			this.parseWLEDInfo(msgValue.info)
 		}
 		parseWLEDVariables(this, msgValue)
+	}
+
+	// Returns the segment at the given index, or undefined if it doesn't exist (e.g. it was deleted on the device)
+	getSegment(index) {
+		const i = Number(index)
+		return Number.isInteger(i) && i >= 0 && i < this.segments.length ? this.segments[i] : undefined
 	}
 
 	getSegmentChoices() {
@@ -172,6 +210,7 @@ class WLEDInstance extends InstanceBase {
 				label: 'Poll for updates',
 				width: 6,
 				default: false,
+				disableAutoExpression: true,
 			},
 			{
 				type: 'number',
@@ -181,7 +220,7 @@ class WLEDInstance extends InstanceBase {
 				default: 1000,
 				min: 100,
 				max: 60000,
-				isVisible: (config) => config.polling,
+				isVisibleExpression: '$(options:polling)',
 			},
 		]
 	}
@@ -198,5 +237,3 @@ class WLEDInstance extends InstanceBase {
 		setupVariables(this)
 	}
 }
-
-runEntrypoint(WLEDInstance, upgradeScripts)

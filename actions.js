@@ -1,3 +1,8 @@
+// WLED accepts "t" to toggle a power state on the device itself
+function targetPowerState(selectedState) {
+	return selectedState == 0 ? true : selectedState == 1 ? false : 't'
+}
+
 export function setupActions(instance) {
 	instance.setActionDefinitions({
 		setState: {
@@ -16,14 +21,10 @@ export function setupActions(instance) {
 					],
 				},
 			],
-			callback: async (action, context) => {
-				const targetState =
-					action.options.selectedState == 0 ? true : action.options.selectedState == 1 ? false : !instance.isOn
-				instance.ws.send(
-					JSON.stringify({
-						on: targetState,
-					}),
-				)
+			callback: async (action) => {
+				instance.send({
+					on: targetPowerState(action.options.selectedState),
+				})
 			},
 		},
 		setSegState: {
@@ -49,23 +50,14 @@ export function setupActions(instance) {
 					],
 				},
 			],
-			callback: async (action, context) => {
-				if (action.options.selectedSegment <= instance.segmentCount) {
-					const targetState =
-						action.options.selectedState == 0
-							? true
-							: action.options.selectedState == 1
-								? false
-								: !instance.segments[action.options.selectedSegment].on
-					var segObj = {}
-					segObj['id'] = action.options.selectedSegment
-					segObj['on'] = targetState
-					instance.ws.send(
-						JSON.stringify({
-							seg: segObj,
-						}),
-					)
-				}
+			callback: async (action) => {
+				if (!instance.getSegment(action.options.selectedSegment)) return
+				instance.send({
+					seg: {
+						id: Number(action.options.selectedSegment),
+						on: targetPowerState(action.options.selectedState),
+					},
+				})
 			},
 		},
 		setBrightness: {
@@ -81,13 +73,10 @@ export function setupActions(instance) {
 					max: 255,
 				},
 			],
-			callback: async (action, context) => {
-				var parsedBrightness = await instance.parseVariablesInString(action.options.targetBrightness)
-				instance.ws.send(
-					JSON.stringify({
-						bri: parsedBrightness,
-					}),
-				)
+			callback: async (action) => {
+				instance.send({
+					bri: Number(action.options.targetBrightness),
+				})
 			},
 		},
 		setSegBrightness: {
@@ -110,18 +99,14 @@ export function setupActions(instance) {
 					max: 255,
 				},
 			],
-			callback: async (action, context) => {
-				if (action.options.selectedSegment <= instance.segmentCount) {
-					var parsedBrightness = await instance.parseVariablesInString(action.options.targetBrightness)
-					var segObj = {}
-					segObj['id'] = action.options.selectedSegment
-					segObj['bri'] = parsedBrightness
-					instance.ws.send(
-						JSON.stringify({
-							seg: segObj,
-						}),
-					)
-				}
+			callback: async (action) => {
+				if (!instance.getSegment(action.options.selectedSegment)) return
+				instance.send({
+					seg: {
+						id: Number(action.options.selectedSegment),
+						bri: Number(action.options.targetBrightness),
+					},
+				})
 			},
 		},
 		setSegColor: {
@@ -142,7 +127,6 @@ export function setupActions(instance) {
 					min: 0,
 					max: 255,
 					default: 128,
-					required: true,
 				},
 				{
 					type: 'number',
@@ -151,7 +135,6 @@ export function setupActions(instance) {
 					min: 0,
 					max: 255,
 					default: 128,
-					required: true,
 				},
 				{
 					type: 'number',
@@ -160,31 +143,35 @@ export function setupActions(instance) {
 					min: 0,
 					max: 255,
 					default: 128,
-					required: true,
 				},
 			],
-			callback: async (action, context) => {
-				if (action.options.selectedSegment <= instance.segmentCount) {
-					var segObj = {}
-					segObj['id'] = action.options.selectedSegment
-					segObj['col'] = instance.segments[action.options.selectedSegment].col
-					segObj['col'][0][0] = action.options.red
-					segObj['col'][0][1] = action.options.green
-					segObj['col'][0][2] = action.options.blue
-					console.log(segObj.col[0])
-					instance.ws.send(
-						JSON.stringify({
-							seg: segObj,
-						}),
-					)
-				}
+			callback: async (action) => {
+				const segment = instance.getSegment(action.options.selectedSegment)
+				if (!segment) return
+				// Copy the current colors so the cached state isn't changed before WLED confirms it,
+				// and keep the white channel and the secondary/tertiary colors as they are
+				const col = (segment.col ?? []).map((color) => (Array.isArray(color) ? [...color] : color))
+				const primary = Array.isArray(col[0]) ? col[0] : []
+				col[0] = [
+					Number(action.options.red),
+					Number(action.options.green),
+					Number(action.options.blue),
+					...primary.slice(3),
+				]
+				instance.send({
+					seg: {
+						id: Number(action.options.selectedSegment),
+						col: col,
+					},
+				})
 			},
 			learn: (action) => {
+				const primary = instance.getSegment(action.options.selectedSegment)?.col?.[0]
+				if (!Array.isArray(primary)) return undefined
 				return {
-					red: instance.segments[action.options.selectedSegment].col[0][0],
-					green: instance.segments[action.options.selectedSegment].col[0][1],
-					blue: instance.segments[action.options.selectedSegment].col[0][2],
-					selectedSegment: action.options.selectedSegment,
+					red: primary[0],
+					green: primary[1],
+					blue: primary[2],
 				}
 			},
 		},
@@ -209,7 +196,7 @@ export function setupActions(instance) {
 					type: 'dropdown',
 					label: 'Mode',
 					id: 'selectedMode',
-					default: 0,
+					default: '',
 					choices: [
 						{ id: '', label: 'Set to value' },
 						{ id: '~', label: 'Increment by' },
@@ -232,18 +219,17 @@ export function setupActions(instance) {
 					max: 255,
 				},
 			],
-			callback: async (action, context) => {
-				if (action.options.selectedSegment <= instance.segmentCount) {
-					var parsedValue = await instance.parseVariablesInString(action.options.targetParamValue)
-					var segObj = {}
-					segObj['id'] = action.options.selectedSegment
-					segObj[action.options.selectedParameter] = action.options.selectedMode + parsedValue
-					instance.ws.send(
-						JSON.stringify({
-							seg: segObj,
-						}),
-					)
-				}
+			callback: async (action) => {
+				if (!instance.getSegment(action.options.selectedSegment)) return
+				const value = Number(action.options.targetParamValue)
+				// Older saved actions may have a mode of 0, which means "Set to value"
+				const mode = action.options.selectedMode || ''
+				instance.send({
+					seg: {
+						id: Number(action.options.selectedSegment),
+						[action.options.selectedParameter]: mode ? mode + value : value,
+					},
+				})
 			},
 		},
 		setLiveOverride: {
@@ -263,16 +249,14 @@ export function setupActions(instance) {
 					],
 				},
 			],
-			callback: async (action, context) => {
+			callback: async (action) => {
 				const modes = { allow: 0, block: 1, blockReboot: 2 }
 				const lor = action.options.mode === 'toggle' ? (instance.lor === 0 ? 1 : 0) : modes[action.options.mode]
-				instance.ws.send(
-					JSON.stringify({
-						lor: lor,
-						// WLED doesn't send the updated state to the websocket upon updating lor; setting "v" to true tells it to return the state manually
-						v: true,
-					}),
-				)
+				instance.send({
+					lor: lor,
+					// WLED doesn't send the updated state to the websocket upon updating lor; setting "v" to true tells it to return the state manually
+					v: true,
+				})
 			},
 		},
 		loadPreset: {
@@ -285,15 +269,13 @@ export function setupActions(instance) {
 					id: 'targetPreset',
 					default: 1,
 					min: 0,
+					max: 250,
 				},
 			],
-			callback: async (action, context) => {
-				var parsedPreset = await instance.parseVariablesInString(action.options.targetPreset)
-				instance.ws.send(
-					JSON.stringify({
-						ps: parsedPreset,
-					}),
-				)
+			callback: async (action) => {
+				instance.send({
+					ps: Number(action.options.targetPreset),
+				})
 			},
 		},
 	})
