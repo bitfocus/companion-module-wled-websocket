@@ -4,6 +4,11 @@ export function setupVariables(instance) {
 		{ variableId: 'brightness', name: 'Global Brightness' },
 		{ variableId: 'preset', name: 'Current Preset' },
 		{ variableId: 'preset_name', name: 'Current Preset Name' },
+		{ variableId: 'playlist', name: 'Current Playlist' },
+		{ variableId: 'playlist_name', name: 'Current Playlist Name' },
+		{ variableId: 'transition', name: 'Transition Time (seconds)' },
+		{ variableId: 'nightlight', name: 'Night Light On' },
+		{ variableId: 'nightlight_remaining', name: 'Night Light Time Remaining (seconds)' },
 		{ variableId: 'version', name: 'WLED Version' },
 		{ variableId: 'processor', name: 'WLED Processor' },
 		{ variableId: 'led_count', name: 'LED Count' },
@@ -62,6 +67,14 @@ export function parseWLEDVariables(instance, data) {
 		variables['brightness'] = data.state.bri ?? 'unknown'
 		variables['preset'] = data.state.ps == -1 ? 'none' : (data.state.ps ?? 'unknown')
 		variables['preset_name'] = data.state.ps == -1 ? 'none' : (instance.presets[data.state.ps] ?? 'unknown')
+		const playlist = data.state.pl
+		variables['playlist'] = playlist === undefined ? 'unknown' : playlist < 0 ? 'none' : playlist
+		variables['playlist_name'] =
+			playlist === undefined ? 'unknown' : playlist < 0 ? 'none' : (instance.presets[playlist] ?? 'unknown')
+		// WLED reports the transition time in tenths of a second
+		variables['transition'] = data.state.transition === undefined ? 'unknown' : data.state.transition / 10
+		variables['nightlight'] = data.state.nl?.on ?? 'unknown'
+		variables['nightlight_remaining'] = data.state.nl?.on ? Math.max(0, data.state.nl.rem ?? 0) : 0
 		if (data.state.seg != null) {
 			for (let i = 0; i < instance.segmentCount; i++) {
 				variables[`segment_${i + 1}_power`] = data.state.seg[i]?.on ?? 'unknown'

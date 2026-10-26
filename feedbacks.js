@@ -165,6 +165,37 @@ export function setupFeedbacks(instance) {
 				return instance.state?.ps === Number(feedback.options.preset)
 			},
 		},
+		playlistRunning: {
+			type: 'boolean',
+			defaultStyle: activeStyle,
+			name: 'Playlist is running',
+			description: 'True when a playlist is running: any playlist, or the selected one',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Playlist',
+					id: 'playlist',
+					default: 'any',
+					choices: [{ id: 'any', label: 'Any playlist' }, ...instance.getPlaylistChoices()],
+					allowCustom: true,
+				},
+			],
+			callback: (feedback) => {
+				const running = instance.state?.pl
+				if (running === undefined || running < 0) return false
+				return feedback.options.playlist === 'any' || running === Number(feedback.options.playlist)
+			},
+		},
+		nightLightOn: {
+			type: 'boolean',
+			defaultStyle: activeStyle,
+			name: 'Night light is on',
+			description: 'True while the night light timer is running',
+			options: [],
+			callback: () => {
+				return instance.state?.nl?.on === true
+			},
+		},
 		liveDataOverride: {
 			type: 'boolean',
 			defaultStyle: { bgcolor: combineRgb(204, 0, 0), color: combineRgb(255, 255, 255) },

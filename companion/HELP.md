@@ -19,7 +19,11 @@ Pick your WLED controller from the **WLED device** list, which shows WLED contro
 - Set effect parameters for individual segments
 - Set the primary, secondary or tertiary color for individual segments, including the white channel on RGBW strips
 - Control live data override
-- Load a preset, chosen by name (or entered by number)
+- Load a preset, chosen by name (or entered by number). Loading a playlist's preset starts the playlist
+- Step to the next or previous preset in a range, or pick a random one
+- Skip to the next entry of the running playlist, or stop it
+- Set the transition time, permanently or for the next change only
+- Turn the night light on, off or toggle it, with its duration, mode and target brightness
 
 Increasing and decreasing brightness stops at 1 so the lights stay on, unless "Allow dimming to off" is checked. On a rotary encoder, use Increase on the right turn and Decrease on the left turn.
 
@@ -35,6 +39,8 @@ Effect, palette and preset names are loaded from the WLED over HTTP when the mod
 - Get the color for individual segments
 - Whether a segment is running a given effect
 - Whether a given preset is active
+- Whether a playlist (any, or a given one) is running
+- Whether the night light is on
 - Whether live data override is enabled
 
 ### Supported variables
@@ -43,6 +49,10 @@ Effect, palette and preset names are loaded from the WLED over HTTP when the mod
 - `$(wled-websocket:brightness)` - Global Brightness
 - `$(wled-websocket:preset)` - Current Preset
 - `$(wled-websocket:preset_name)` - Current Preset Name
+- `$(wled-websocket:playlist)` / `$(wled-websocket:playlist_name)` - Running playlist and its name (`none` when no playlist is running)
+- `$(wled-websocket:transition)` - Transition time in seconds
+- `$(wled-websocket:nightlight)` - Whether the night light is on
+- `$(wled-websocket:nightlight_remaining)` - Seconds left on the night light. WLED only reports this when something changes, so turn on **Poll for updates** to keep it counting down
 - `$(wled-websocket:version)` - WLED Version
 - `$(wled-websocket:processor)` - WLED Processor (chip model, e.g. ESP32-D0WD-V3)
 - `$(wled-websocket:led_count)` - LED Count
