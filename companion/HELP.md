@@ -14,8 +14,8 @@ Pick your WLED controller from the **WLED device** list, which shows WLED contro
 - Turn On / Turn Off / Toggle individual segments
 - Set, increase or decrease the brightness for the whole WLED device
 - Set, increase or decrease the brightness for individual segments
-- Set the effect for individual segments, chosen by name
-- Set the color palette for individual segments, chosen by name
+- Set the effect for individual segments, chosen by name (or entered by number)
+- Set the color palette for individual segments, chosen by name (or entered by number)
 - Set effect parameters for individual segments
 - Set the primary, secondary or tertiary color for individual segments, including the white channel on RGBW strips
 - Control live data override

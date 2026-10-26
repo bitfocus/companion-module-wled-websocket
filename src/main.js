@@ -230,7 +230,12 @@ export default class WLEDInstance extends InstanceBase {
 		if (fxdata.status === 'fulfilled' && Array.isArray(fxdata.value)) {
 			this.effectSliders = fxdata.value.map((entry, id) => parseEffectSliders(entry, id))
 		}
-		if ([effects, palettes, fxdata].some((result) => result.status === 'fulfilled')) this.namesUpdated()
+		if (![effects, palettes, fxdata].some((result) => result.status === 'fulfilled')) return
+		try {
+			this.namesUpdated()
+		} catch (e) {
+			this.log('warn', `Could not update effect and palette names: ${e.message}`)
+		}
 	}
 
 	async loadPresets() {
