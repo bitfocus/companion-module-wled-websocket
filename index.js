@@ -146,8 +146,11 @@ export default class WLEDInstance extends InstanceBase {
 		})
 	}
 
-	// The host (and optional port) of the WLED device, without stray spaces or a pasted http:// or ws:// prefix
+	// The host (and optional port) of the WLED device: the discovered device if one is selected
+	// (given as "ip:port"), otherwise the manually entered address without stray spaces or a
+	// pasted http:// or ws:// prefix
 	getHost() {
+		if (this.config.bonjourHost) return this.config.bonjourHost
 		return String(this.config.targetIp ?? '')
 			.trim()
 			.replace(/^(https?|wss?):\/\//i, '')
@@ -286,10 +289,18 @@ export default class WLEDInstance extends InstanceBase {
 	getConfigFields() {
 		return [
 			{
+				type: 'bonjour-device',
+				id: 'bonjourHost',
+				label: 'WLED device',
+				width: 6,
+				disableAutoExpression: true,
+			},
+			{
 				type: 'textinput',
 				id: 'targetIp',
 				label: 'WLED IP address',
-				width: 12,
+				width: 6,
+				isVisibleExpression: '!$(options:bonjourHost)',
 			},
 			{
 				type: 'checkbox',

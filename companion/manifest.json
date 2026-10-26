@@ -24,5 +24,11 @@
 	},
 	"manufacturer": "WLED",
 	"products": ["WLED"],
-	"keywords": ["WLED"]
+	"keywords": ["WLED"],
+	"bonjourQueries": {
+		"bonjourHost": {
+			"type": "wled",
+			"protocol": "tcp"
+		}
+	}
 }
