@@ -14,8 +14,8 @@ Pick your WLED controller from the **WLED device** list, which shows WLED contro
 - Turn On / Turn Off / Toggle individual segments
 - Set, increase or decrease the brightness for the whole WLED device
 - Set, increase or decrease the brightness for individual segments
-- Set the effect for individual segments, chosen by name
-- Set the color palette for individual segments, chosen by name
+- Set the effect for individual segments, chosen by name (or entered by number)
+- Set the color palette for individual segments, chosen by name (or entered by number)
 - Set effect parameters for individual segments
 - Set the primary, secondary or tertiary color for individual segments, including the white channel on RGBW strips
 - Control live data override
@@ -65,42 +65,45 @@ The preset and segment buttons follow the WLED: when you save, rename or delete 
 
 ### Supported variables
 
-- `$(wled-websocket:power)` - Global Power
-- `$(wled-websocket:brightness)` - Global Brightness
-- `$(wled-websocket:preset)` - Current Preset
-- `$(wled-websocket:preset_name)` - Current Preset Name
-- `$(wled-websocket:playlist)` / `$(wled-websocket:playlist_name)` - Running playlist and its name (`none` when no playlist is running)
-- `$(wled-websocket:transition)` - Transition time in seconds
-- `$(wled-websocket:nightlight)` - Whether the night light is on
-- `$(wled-websocket:sync_send)` / `$(wled-websocket:sync_receive)` - Whether sync sending / receiving is on
-- `$(wled-websocket:nightlight_remaining)` - Seconds left on the night light. WLED only reports this when something changes, so turn on **Poll for updates** to keep it counting down
-- `$(wled-websocket:version)` - WLED Version
-- `$(wled-websocket:processor)` - WLED Processor (chip model, e.g. ESP32-D0WD-V3)
-- `$(wled-websocket:led_count)` - LED Count
-- `$(wled-websocket:current)` - Current (mA)
-- `$(wled-websocket:max_current)` - Max Current (mA)
-- `$(wled-websocket:name)` - WLED Name
-- `$(wled-websocket:free_heap)` - Free Heap
-- `$(wled-websocket:uptime)` - Uptime
-- `$(wled-websocket:ip_address)` - IP Address
+The examples use `wled`, the default connection label; if you gave the connection another label, use that instead.
+
+- `$(wled:power)` - Global Power
+- `$(wled:brightness)` - Global Brightness
+- `$(wled:preset)` - Current Preset
+- `$(wled:preset_name)` - Current Preset Name
+- `$(wled:preset_N_name)` - Name of saved preset N (e.g. `$(wled:preset_3_name)`)
+- `$(wled:playlist)` / `$(wled:playlist_name)` - Running playlist and its name (`none` when no playlist is running)
+- `$(wled:transition)` - Transition time in seconds
+- `$(wled:nightlight)` - Whether the night light is on
+- `$(wled:sync_send)` / `$(wled:sync_receive)` - Whether sync sending / receiving is on
+- `$(wled:nightlight_remaining)` - Seconds left on the night light. WLED only reports this when something changes, so turn on **Poll for updates** to keep it counting down
+- `$(wled:version)` - WLED Version
+- `$(wled:processor)` - WLED Processor (chip model, e.g. ESP32-D0WD-V3)
+- `$(wled:led_count)` - LED Count
+- `$(wled:current)` - Current (mA)
+- `$(wled:max_current)` - Max Current (mA)
+- `$(wled:name)` - WLED Name
+- `$(wled:free_heap)` - Free Heap
+- `$(wled:uptime)` - Uptime
+- `$(wled:ip_address)` - IP Address
 
 #### Segment Variables
 
 For each segment (replace X with segment number, starting at 1):
 
-- `$(wled-websocket:segment_X_name)` - Segment X Name (its WLED name, or "Segment X")
-- `$(wled-websocket:segment_X_power)` - Segment X Power
-- `$(wled-websocket:segment_X_brightness)` - Segment X Brightness
-- `$(wled-websocket:segment_X_color)` - Segment X Color (primary color as #RRGGBB)
-- `$(wled-websocket:segment_X_cct)` - Segment X Color Temperature (0 = warm, 255 = cold)
-- `$(wled-websocket:segment_X_freeze)`, `…_reverse`, `…_mirror` - Segment X options
-- `$(wled-websocket:segment_X_effect)` - Segment X Effect
-- `$(wled-websocket:segment_X_effect_name)` - Segment X Effect Name
-- `$(wled-websocket:segment_X_palette)` - Segment X Palette
-- `$(wled-websocket:segment_X_palette_name)` - Segment X Palette Name
-- `$(wled-websocket:segment_X_effect_speed)` - Segment X Effect Speed
-- `$(wled-websocket:segment_X_effect_intensity)` - Segment X Effect Intensity
-- `$(wled-websocket:segment_X_effect_custom_1)` - Segment X Effect Custom Slider 1
-- `$(wled-websocket:segment_X_effect_custom_2)` - Segment X Effect Custom Slider 2
-- `$(wled-websocket:segment_X_effect_custom_3)` - Segment X Effect Custom Slider 3
-- `$(wled-websocket:segment_X_speed_label)`, `…_intensity_label`, `…_custom_1_label`, `…_custom_2_label`, `…_custom_3_label` - What the current effect calls each slider (for example "Duty cycle"); empty when the effect doesn't use that slider
+- `$(wled:segment_X_name)` - Segment X Name (its WLED name, or "Segment X")
+- `$(wled:segment_X_power)` - Segment X Power
+- `$(wled:segment_X_brightness)` - Segment X Brightness
+- `$(wled:segment_X_color)` - Segment X Color (primary color as #RRGGBB)
+- `$(wled:segment_X_cct)` - Segment X Color Temperature (0 = warm, 255 = cold)
+- `$(wled:segment_X_freeze)`, `…_reverse`, `…_mirror` - Segment X options
+- `$(wled:segment_X_effect)` - Segment X Effect
+- `$(wled:segment_X_effect_name)` - Segment X Effect Name
+- `$(wled:segment_X_palette)` - Segment X Palette
+- `$(wled:segment_X_palette_name)` - Segment X Palette Name
+- `$(wled:segment_X_effect_speed)` - Segment X Effect Speed
+- `$(wled:segment_X_effect_intensity)` - Segment X Effect Intensity
+- `$(wled:segment_X_effect_custom_1)` - Segment X Effect Custom Slider 1
+- `$(wled:segment_X_effect_custom_2)` - Segment X Effect Custom Slider 2
+- `$(wled:segment_X_effect_custom_3)` - Segment X Effect Custom Slider 3
+- `$(wled:segment_X_speed_label)`, `…_intensity_label`, `…_custom_1_label`, `…_custom_2_label`, `…_custom_3_label` - What the current effect calls each slider (for example "Duty cycle"); empty when the effect doesn't use that slider
