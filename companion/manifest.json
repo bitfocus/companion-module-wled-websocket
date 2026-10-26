@@ -1,4 +1,6 @@
 {
+	"$schema": "../node_modules/@companion-module/base/assets/manifest.schema.json",
+	"type": "connection",
 	"id": "wled-websocket",
 	"name": "wled-websocket",
 	"shortname": "wled",
@@ -19,7 +21,7 @@
 	],
 	"legacyIds": ["wled-ws"],
 	"runtime": {
-		"type": "node18",
+		"type": "node22",
 		"api": "nodejs-ipc",
 		"apiVersion": "0.0.0",
 		"entrypoint": "../index.js"

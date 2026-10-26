@@ -27,7 +27,7 @@ export function setupVariables(instance) {
 			{ variableId: `segment_${i + 1}_effect_custom_3`, name: `Segment ${i + 1} Effect Custom Slider 3` },
 		)
 	}
-	instance.setVariableDefinitions(variables)
+	instance.setVariableDefinitions(Object.fromEntries(variables.map(({ variableId, name }) => [variableId, { name }])))
 }
 
 // WLED reports segment colors as `col`: [primary, secondary, tertiary], each [r, g, b] or [r, g, b, w].
@@ -69,9 +69,9 @@ export function parseWLEDVariables(instance, data) {
 	if (data.info != null) {
 		variables['version'] = data.info.ver ?? 'unknown'
 		variables['processor'] = data.info.arch ?? 'unknown'
-		variables['led_count'] = data.info.leds.count ?? 'unknown'
-		variables['current'] = data.info.leds.pwr ?? 'unknown'
-		variables['max_current'] = data.info.leds.maxpwr ?? 'unknown'
+		variables['led_count'] = data.info.leds?.count ?? 'unknown'
+		variables['current'] = data.info.leds?.pwr ?? 'unknown'
+		variables['max_current'] = data.info.leds?.maxpwr ?? 'unknown'
 		variables['name'] = data.info.name ?? 'unknown'
 		variables['free_heap'] = data.info.freeheap ?? 'unknown'
 		variables['uptime'] = data.info.uptime ?? 'unknown'

@@ -4,6 +4,8 @@ This module enables Companion to control a WLED instance using a websocket conne
 
 ### Setup
 
+Requires Companion 4.3 or later.
+
 Simply type in the IP of the WLED controller in the module configuration and you are ready to go. If you want to control more than one WLED controller, simply add this module several times to your companion instance.
 
 ### Supported actions
