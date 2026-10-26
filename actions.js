@@ -325,25 +325,97 @@ export function setupActions(instance) {
 				})
 			},
 		},
+		setSegEffect: {
+			name: 'Set Segment Effect',
+			description: 'Set the effect of a segment',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Segment',
+					id: 'selectedSegment',
+					default: 0,
+					choices: instance.getSegmentChoices(),
+				},
+				{
+					type: 'dropdown',
+					label: 'Effect',
+					id: 'effect',
+					default: 0,
+					choices: instance.getEffectChoices(),
+				},
+			],
+			callback: async (action) => {
+				if (!instance.getSegment(action.options.selectedSegment)) return
+				instance.send({
+					seg: {
+						id: Number(action.options.selectedSegment),
+						fx: Number(action.options.effect),
+					},
+				})
+			},
+			learn: (action) => {
+				const segment = instance.getSegment(action.options.selectedSegment)
+				if (!segment) return undefined
+				return { effect: segment.fx }
+			},
+		},
+		setSegPalette: {
+			name: 'Set Segment Palette',
+			description: 'Set the color palette of a segment',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Segment',
+					id: 'selectedSegment',
+					default: 0,
+					choices: instance.getSegmentChoices(),
+				},
+				{
+					type: 'dropdown',
+					label: 'Palette',
+					id: 'palette',
+					default: 0,
+					choices: instance.getPaletteChoices(),
+				},
+			],
+			callback: async (action) => {
+				if (!instance.getSegment(action.options.selectedSegment)) return
+				instance.send({
+					seg: {
+						id: Number(action.options.selectedSegment),
+						pal: Number(action.options.palette),
+					},
+				})
+			},
+			learn: (action) => {
+				const segment = instance.getSegment(action.options.selectedSegment)
+				if (!segment) return undefined
+				return { palette: segment.pal }
+			},
+		},
 		loadPreset: {
 			name: 'Load Preset',
 			description: 'Load a previously saved preset',
 			options: [
 				{
-					type: 'number',
+					type: 'dropdown',
 					label: 'Preset',
 					id: 'targetPreset',
 					default: 1,
-					min: 0,
-					max: 250,
-					clampValues: true,
-					asInteger: true,
+					choices: instance.getPresetChoices(),
+					// Allows presets that haven't been loaded yet to be entered by number
+					allowCustom: true,
+					regex: '/^\\d+$/',
 				},
 			],
 			callback: async (action) => {
-				const ps = numberOption(instance, action.options.targetPreset, 'preset')
-				if (ps === undefined) return
-				instance.send({ ps })
+				const preset = numberOption(instance, action.options.targetPreset, 'preset')
+				if (preset === undefined) return
+				if (!Number.isInteger(preset) || preset < 1) {
+					instance.log('warn', `Invalid preset "${action.options.targetPreset}", command not sent`)
+					return
+				}
+				instance.send({ ps: preset })
 			},
 		},
 	})

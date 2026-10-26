@@ -3,6 +3,7 @@ export function setupVariables(instance) {
 		{ variableId: 'power', name: 'Global Power' },
 		{ variableId: 'brightness', name: 'Global Brightness' },
 		{ variableId: 'preset', name: 'Current Preset' },
+		{ variableId: 'preset_name', name: 'Current Preset Name' },
 		{ variableId: 'version', name: 'WLED Version' },
 		{ variableId: 'processor', name: 'WLED Processor' },
 		{ variableId: 'led_count', name: 'LED Count' },
@@ -20,6 +21,9 @@ export function setupVariables(instance) {
 			{ variableId: `segment_${i + 1}_brightness`, name: `Segment ${i + 1} Brightness` },
 			{ variableId: `segment_${i + 1}_color`, name: `Segment ${i + 1} Color` },
 			{ variableId: `segment_${i + 1}_effect`, name: `Segment ${i + 1} Effect` },
+			{ variableId: `segment_${i + 1}_effect_name`, name: `Segment ${i + 1} Effect Name` },
+			{ variableId: `segment_${i + 1}_palette`, name: `Segment ${i + 1} Palette` },
+			{ variableId: `segment_${i + 1}_palette_name`, name: `Segment ${i + 1} Palette Name` },
 			{ variableId: `segment_${i + 1}_effect_speed`, name: `Segment ${i + 1} Effect Speed` },
 			{ variableId: `segment_${i + 1}_effect_intensity`, name: `Segment ${i + 1} Effect Intensity` },
 			{ variableId: `segment_${i + 1}_effect_custom_1`, name: `Segment ${i + 1} Effect Custom Slider 1` },
@@ -52,12 +56,16 @@ export function parseWLEDVariables(instance, data) {
 		variables['power'] = data.state.on ?? 'unknown'
 		variables['brightness'] = data.state.bri ?? 'unknown'
 		variables['preset'] = data.state.ps == -1 ? 'none' : (data.state.ps ?? 'unknown')
+		variables['preset_name'] = data.state.ps == -1 ? 'none' : (instance.presets[data.state.ps] ?? 'unknown')
 		if (data.state.seg != null) {
 			for (let i = 0; i < instance.segmentCount; i++) {
 				variables[`segment_${i + 1}_power`] = data.state.seg[i]?.on ?? 'unknown'
 				variables[`segment_${i + 1}_brightness`] = data.state.seg[i]?.bri ?? 'unknown'
 				variables[`segment_${i + 1}_color`] = primaryColorHex(data.state.seg[i]?.col) ?? 'unknown'
 				variables[`segment_${i + 1}_effect`] = data.state.seg[i]?.fx ?? 'unknown'
+				variables[`segment_${i + 1}_effect_name`] = instance.effects[data.state.seg[i]?.fx] ?? 'unknown'
+				variables[`segment_${i + 1}_palette`] = data.state.seg[i]?.pal ?? 'unknown'
+				variables[`segment_${i + 1}_palette_name`] = instance.palettes[data.state.seg[i]?.pal] ?? 'unknown'
 				variables[`segment_${i + 1}_effect_speed`] = data.state.seg[i]?.sx ?? 'unknown'
 				variables[`segment_${i + 1}_effect_intensity`] = data.state.seg[i]?.ix ?? 'unknown'
 				variables[`segment_${i + 1}_effect_custom_1`] = data.state.seg[i]?.c1 ?? 'unknown'
