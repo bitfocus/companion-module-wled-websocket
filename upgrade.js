@@ -61,4 +61,25 @@ export const upgradeScripts = [
 
 		return result
 	},
+
+	// Set Brightness / Set Segment Brightness: actions saved before the Mode option existed have no
+	// value for it, which Companion rejects, so default them to "Set to value"
+	function (context, props) {
+		const result = {
+			updatedConfig: null,
+			updatedActions: [],
+			updatedFeedbacks: [],
+		}
+
+		for (const action of props.actions) {
+			if (action.actionId !== 'setBrightness' && action.actionId !== 'setSegBrightness') continue
+			if (action.options.mode !== undefined) continue
+
+			action.options.mode = { isExpression: false, value: 'set' }
+			action.options.allowOff = { isExpression: false, value: false }
+			result.updatedActions.push(action)
+		}
+
+		return result
+	},
 ]
