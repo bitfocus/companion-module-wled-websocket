@@ -14,6 +14,58 @@ function targetPowerState(selectedState) {
 	return selectedState == 0 ? true : selectedState == 1 ? false : 't'
 }
 
+const brightnessOptions = [
+	{
+		type: 'dropdown',
+		label: 'Mode',
+		id: 'mode',
+		default: 'set',
+		disableAutoExpression: true,
+		choices: [
+			{ id: 'set', label: 'Set to value' },
+			{ id: 'inc', label: 'Increase by' },
+			{ id: 'dec', label: 'Decrease by' },
+		],
+	},
+	{
+		type: 'number',
+		label: 'Brightness',
+		id: 'targetBrightness',
+		default: 127,
+		min: 0,
+		max: 255,
+		clampValues: true,
+		asInteger: true,
+	},
+	{
+		type: 'checkbox',
+		label: 'Allow dimming to off',
+		id: 'allowOff',
+		default: false,
+		tooltip: 'When decreasing, let the brightness reach 0, which turns the lights off',
+		isVisibleExpression: `$(options:mode) == 'dec'`,
+	},
+]
+
+// Builds the WLED brightness value. Relative changes use WLED's "min~max~step" syntax,
+// so the device clamps the result instead of us relying on possibly stale cached state.
+function brightnessValue(instance, options) {
+	const value = numberOption(instance, options.targetBrightness, 'brightness')
+	if (value === undefined) return undefined
+	if (options.mode === 'inc' || options.mode === 'dec') {
+		if (!value) return undefined
+		const min = options.mode === 'dec' && options.allowOff ? 0 : 1
+		return `${min}~255~${options.mode === 'dec' ? -value : value}`
+	}
+	return value
+}
+
+// Splits a color picker number (0xRRGGBB) into [r, g, b]
+function splitColor(color) {
+	const value = Number(color)
+	return [(value >> 16) & 0xff, (value >> 8) & 0xff, value & 0xff]
+}
+
 export function setupActions(instance) {
 	instance.setActionDefinitions({
 		setState: {
@@ -73,28 +125,17 @@ export function setupActions(instance) {
 		},
 		setBrightness: {
 			name: 'Set Brightness',
-			description: 'Set the brightness of the WLED controller',
-			options: [
-				{
-					type: 'number',
-					label: 'Brightness',
-					id: 'targetBrightness',
-					default: 127,
-					min: 0,
-					max: 255,
-					clampValues: true,
-					asInteger: true,
-				},
-			],
+			description: 'Set, increase or decrease the brightness of the WLED controller',
+			options: brightnessOptions,
 			callback: async (action) => {
-				const bri = numberOption(instance, action.options.targetBrightness, 'brightness')
+				const bri = brightnessValue(instance, action.options)
 				if (bri === undefined) return
 				instance.send({ bri })
 			},
 		},
 		setSegBrightness: {
 			name: 'Set Segment Brightness',
-			description: 'Set the brightness of a segment',
+			description: 'Set, increase or decrease the brightness of a segment',
 			options: [
 				{
 					type: 'dropdown',
@@ -103,20 +144,11 @@ export function setupActions(instance) {
 					default: 0,
 					choices: instance.getSegmentChoices(),
 				},
-				{
-					type: 'number',
-					label: 'Brightness',
-					id: 'targetBrightness',
-					default: 127,
-					min: 0,
-					max: 255,
-					clampValues: true,
-					asInteger: true,
-				},
+				...brightnessOptions,
 			],
 			callback: async (action) => {
 				if (!instance.getSegment(action.options.selectedSegment)) return
-				const bri = numberOption(instance, action.options.targetBrightness, 'brightness')
+				const bri = brightnessValue(instance, action.options)
 				if (bri === undefined) return
 				instance.send({
 					seg: {
@@ -128,7 +160,7 @@ export function setupActions(instance) {
 		},
 		setSegColor: {
 			name: 'Set Segment Color',
-			description: 'Set the color of a segment',
+			description: 'Set one of the colors of a segment',
 			options: [
 				{
 					type: 'dropdown',
@@ -138,46 +170,56 @@ export function setupActions(instance) {
 					choices: instance.getSegmentChoices(),
 				},
 				{
-					type: 'number',
-					label: 'Red (0-255)',
-					id: 'red',
-					min: 0,
-					max: 255,
-					clampValues: true,
-					asInteger: true,
-					default: 128,
+					type: 'dropdown',
+					label: 'Color slot',
+					id: 'slot',
+					default: 0,
+					choices: [
+						{ id: 0, label: 'Primary' },
+						{ id: 1, label: 'Secondary' },
+						{ id: 2, label: 'Tertiary' },
+					],
+				},
+				{
+					type: 'colorpicker',
+					label: 'Color',
+					id: 'color',
+					default: 0x808080,
+					returnType: 'number',
+				},
+				{
+					type: 'checkbox',
+					label: 'Set white channel',
+					id: 'setWhite',
+					default: false,
+					disableAutoExpression: true,
+					tooltip: 'For RGBW strips. When off, the current white value is kept',
 				},
 				{
 					type: 'number',
-					label: 'Green (0-255)',
-					id: 'green',
+					label: 'White (0-255)',
+					id: 'white',
 					min: 0,
 					max: 255,
 					clampValues: true,
 					asInteger: true,
-					default: 128,
-				},
-				{
-					type: 'number',
-					label: 'Blue (0-255)',
-					id: 'blue',
-					min: 0,
-					max: 255,
-					clampValues: true,
-					asInteger: true,
-					default: 128,
+					default: 0,
+					isVisibleExpression: '$(options:setWhite)',
 				},
 			],
 			callback: async (action) => {
 				const segment = instance.getSegment(action.options.selectedSegment)
 				if (!segment) return
+				const slot = Number(action.options.slot) || 0
 				// Copy the current colors so the cached state isn't changed before WLED confirms it,
-				// and keep the white channel and the secondary/tertiary colors as they are
+				// and keep the other slots (and the white channel, unless it is being set) as they are
 				const col = (segment.col ?? []).map((color) => (Array.isArray(color) ? [...color] : color))
-				const primary = Array.isArray(col[0]) ? col[0] : []
-				const rgb = ['red', 'green', 'blue'].map((id) => numberOption(instance, action.options[id], id))
-				if (rgb.includes(undefined)) return
-				col[0] = [...rgb, ...primary.slice(3)]
+				while (col.length <= slot) col.push([0, 0, 0])
+				const current = Array.isArray(col[slot]) ? col[slot] : []
+				const color = numberOption(instance, action.options.color, 'color')
+				const white = action.options.setWhite ? numberOption(instance, action.options.white, 'white') : undefined
+				if (color === undefined || (action.options.setWhite && white === undefined)) return
+				col[slot] = [...splitColor(color), ...(action.options.setWhite ? [white] : current.slice(3))]
 				instance.send({
 					seg: {
 						id: Number(action.options.selectedSegment),
@@ -186,13 +228,14 @@ export function setupActions(instance) {
 				})
 			},
 			learn: (action) => {
-				const primary = instance.getSegment(action.options.selectedSegment)?.col?.[0]
-				if (!Array.isArray(primary)) return undefined
-				return {
-					red: primary[0],
-					green: primary[1],
-					blue: primary[2],
+				const slot = Number(action.options.slot) || 0
+				const current = instance.getSegment(action.options.selectedSegment)?.col?.[slot]
+				if (!Array.isArray(current)) return undefined
+				const learned = { color: (current[0] << 16) | (current[1] << 8) | current[2] }
+				if (current.length > 3) {
+					learned.white = current[3]
 				}
+				return learned
 			},
 		},
 		setSegEffectParams: {
