@@ -12,10 +12,14 @@ Simply type in the IP of the WLED controller in the module configuration and you
 
 - Turn On / Turn Off / Toggle the whole WLED device
 - Turn On / Turn Off / Toggle individual segments
-- Set the brightness for the whole WLED device
-- Set the brightness for individual segments
+- Set, increase or decrease the brightness for the whole WLED device
+- Set, increase or decrease the brightness for individual segments
 - Set effect parameters for individual segments
-- Set the color for individual segments
+- Set the primary, secondary or tertiary color for individual segments, including the white channel on RGBW strips
+- Control live data override
+- Load a preset
+
+Increasing and decreasing brightness stops at 1 so the lights stay on, unless "Allow dimming to off" is checked. On a rotary encoder, use Increase on the right turn and Decrease on the left turn.
 
 ### Supported feedbacks
 
