@@ -20,7 +20,7 @@ Pick your WLED controller from the **WLED device** list, which shows WLED contro
 - Set the primary, secondary or tertiary color for individual segments, including the white channel on RGBW strips
 - Control live data override
 - Load a preset, chosen by name (or entered by number). Loading a playlist's preset starts the playlist
-- Step to the next or previous preset in a range, or pick a random one
+- Step to the next or previous saved preset in a range (empty preset slots are skipped), or pick a random one
 - Skip to the next entry of the running playlist, or stop it
 - Set the transition time, permanently or for the next change only
 - Turn the night light on, off or toggle it, with its duration, mode and target brightness

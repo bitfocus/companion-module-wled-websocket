@@ -422,7 +422,8 @@ export function setupActions(instance) {
 		},
 		cyclePreset: {
 			name: 'Next / Previous Preset',
-			description: 'Step through a range of presets, wrapping around at the ends, or pick a random one from the range',
+			description:
+				'Step through the saved presets in a range, wrapping around at the ends, or pick a random one from the range',
 			options: [
 				{
 					type: 'dropdown',
@@ -464,9 +465,32 @@ export function setupActions(instance) {
 					instance.log('warn', `First preset (${first}) must be lower than last preset (${last}), command not sent`)
 					return
 				}
-				// WLED cycles with "first~last~" (next), "first~last~-" (previous) and picks at random with "first~lastr"
-				const suffix = { next: '~', previous: '~-', random: 'r' }[action.options.direction] ?? '~'
-				instance.send({ ps: `${first}~${last}${suffix}` })
+				const direction = action.options.direction
+				// Step through the presets that are actually saved: WLED's own cycling counts through every slot
+				// number, and does nothing on an empty one
+				const saved = Object.keys(instance.presets)
+					.map(Number)
+					.filter((id) => id >= first && id <= last)
+					.sort((a, b) => a - b)
+				if (saved.length === 0) {
+					// Preset names not loaded: fall back to WLED's "first~last~" (next), "first~last~-" (previous)
+					// and "first~lastr" (random)
+					const suffix = { next: '~', previous: '~-', random: 'r' }[direction] ?? '~'
+					instance.send({ ps: `${first}~${last}${suffix}` })
+					return
+				}
+				const current = instance.state?.ps ?? -1
+				let target
+				if (direction === 'random') {
+					const others = saved.filter((id) => id !== current)
+					const choices = others.length > 0 ? others : saved
+					target = choices[Math.floor(Math.random() * choices.length)]
+				} else if (direction === 'previous') {
+					target = [...saved].reverse().find((id) => id < current) ?? saved[saved.length - 1]
+				} else {
+					target = saved.find((id) => id > current) ?? saved[0]
+				}
+				instance.send({ ps: target })
 			},
 		},
 		playlistControl: {
