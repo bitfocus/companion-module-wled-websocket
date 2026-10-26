@@ -1,8 +1,9 @@
-import { InstanceBase, runEntrypoint, InstanceStatus, combineRgb } from '@companion-module/base'
+import { InstanceBase, runEntrypoint, InstanceStatus } from '@companion-module/base'
 import WebSocket from 'ws'
 import { upgradeScripts } from './upgrade.js'
 import { setupActions } from './actions.js'
 import { setupFeedbacks } from './feedbacks.js'
+import { setupVariables, parseWLEDVariables } from './variables.js'
 
 class WLEDInstance extends InstanceBase {
 	isInitialized = false
@@ -21,6 +22,7 @@ class WLEDInstance extends InstanceBase {
 
 		this.initActions()
 		this.initFeedbacks()
+		this.initVariables()
 	}
 
 	async destroy() {
@@ -29,6 +31,11 @@ class WLEDInstance extends InstanceBase {
 			clearTimeout(this.reconnect_timer)
 			this.reconnect_timer = null
 		}
+		if (this.polling_timer) {
+			clearInterval(this.polling_timer)
+			this.polling_timer = null
+		}
+
 		if (this.ws) {
 			this.ws.close(1000)
 			delete this.ws
@@ -56,8 +63,12 @@ class WLEDInstance extends InstanceBase {
 			clearTimeout(this.reconnect_timer)
 			this.reconnect_timer = null
 		}
+		if (this.polling_timer) {
+			clearInterval(this.polling_timer)
+			this.polling_timer = null
+		}
 
-		const url = "ws://" + this.config.targetIp + "/ws";
+		const url = 'ws://' + this.config.targetIp + '/ws'
 		if (!url || !this.config.targetIp) {
 			this.updateStatus(InstanceStatus.BadConfig, `IP address is missing`)
 			return
@@ -72,7 +83,14 @@ class WLEDInstance extends InstanceBase {
 		this.ws = new WebSocket(url)
 
 		this.ws.on('open', () => {
-			this.updateStatus(InstanceStatus.Ok);
+			this.updateStatus(InstanceStatus.Ok)
+			if (this.config.polling && this.config.interval > 0) {
+				this.polling_timer = setInterval(() => {
+					if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+						this.ws.send('{"v":true}')
+					}
+				}, this.config.interval)
+			}
 		})
 		this.ws.on('close', (code) => {
 			this.updateStatus(InstanceStatus.Disconnected, `Connection closed with code ${code}`)
@@ -86,7 +104,6 @@ class WLEDInstance extends InstanceBase {
 		})
 	}
 
-
 	parseWLEDState(data) {
 		this.isOn = data.on;
 		this.lor = data.lor;
@@ -95,13 +112,14 @@ class WLEDInstance extends InstanceBase {
 			this.segmentCount = data.seg.length;
 			this.initActions();
 			this.initFeedbacks();
+			this.initVariables()
 		}
-		this.segments = data.seg;
-		this.checkFeedbacks();
+		this.segments = data.seg
+		this.checkFeedbacks()
 	}
 
 	parseWLEDInfo(data) {
-		this.rgbw = data.leds.rgbw;
+		this.rgbw = data.leds.rgbw
 	}
 
 	messageReceivedFromWebSocket(data) {
@@ -112,23 +130,24 @@ class WLEDInstance extends InstanceBase {
 			msgValue = data
 		}
 		if (msgValue.state != null) {
-			this.parseWLEDState(msgValue.state);
+			this.parseWLEDState(msgValue.state)
 		}
 		if (msgValue.info != null) {
-			this.parseWLEDInfo(msgValue.info);
+			this.parseWLEDInfo(msgValue.info)
 		}
+		parseWLEDVariables(this, msgValue)
 	}
 
 	getSegmentChoices() {
-		var dropdownChoices = [];
+		var dropdownChoices = []
 		for (let i = 0; i < this.segmentCount; i++) {
 			const choice = {
 				id: i,
 				label: `Segment ${i + 1}`,
-			};
-			dropdownChoices.push(choice);
+			}
+			dropdownChoices.push(choice)
 		}
-		return dropdownChoices;
+		return dropdownChoices
 	}
 
 	getConfigFields() {
@@ -146,16 +165,37 @@ class WLEDInstance extends InstanceBase {
 				tooltip: 'Reconnect on WebSocket error (after 5 secs)',
 				width: 6,
 				default: true,
-			}
+			},
+			{
+				type: 'checkbox',
+				id: 'polling',
+				label: 'Poll for updates',
+				width: 6,
+				default: false,
+			},
+			{
+				type: 'number',
+				id: 'interval',
+				label: 'Polling interval (ms)',
+				width: 6,
+				default: 1000,
+				min: 100,
+				max: 60000,
+				isVisible: (config) => config.polling,
+			},
 		]
 	}
 
 	initFeedbacks() {
-		setupFeedbacks(this);
+		setupFeedbacks(this)
 	}
 
 	initActions() {
-		setupActions(this);
+		setupActions(this)
+	}
+
+	initVariables() {
+		setupVariables(this)
 	}
 }
 
