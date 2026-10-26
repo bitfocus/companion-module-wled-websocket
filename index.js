@@ -4,6 +4,7 @@ import { upgradeScripts } from './upgrade.js'
 import { setupActions } from './actions.js'
 import { setupFeedbacks } from './feedbacks.js'
 import { setupVariables, parseWLEDVariables } from './variables.js'
+import { setupPresets } from './presets.js'
 
 // How often to ping WLED, and how many pings in a row may go unanswered before the connection
 // is considered dead. Allowing a few misses keeps a brief Wi-Fi hiccup from dropping the connection.
@@ -61,6 +62,7 @@ export default class WLEDInstance extends InstanceBase {
 		this.initActions()
 		this.initFeedbacks()
 		this.initVariables()
+		this.initPresets()
 
 		this.isInitialized = true
 		this.initWebSocket()
@@ -241,6 +243,9 @@ export default class WLEDInstance extends InstanceBase {
 	namesUpdated() {
 		this.initActions()
 		this.initFeedbacks()
+		// Preset names are variables, and the ready-made buttons include one per preset
+		this.initVariables()
+		this.initPresets()
 		if (this.state) {
 			parseWLEDVariables(this, { state: this.state })
 		}
@@ -262,6 +267,7 @@ export default class WLEDInstance extends InstanceBase {
 			this.initActions()
 			this.initFeedbacks()
 			this.initVariables()
+			this.initPresets()
 		}
 		this.segments = segments
 		this.checkAllFeedbacks()
@@ -402,5 +408,9 @@ export default class WLEDInstance extends InstanceBase {
 
 	initVariables() {
 		setupVariables(this)
+	}
+
+	initPresets() {
+		setupPresets(this)
 	}
 }

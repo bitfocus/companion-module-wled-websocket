@@ -35,6 +35,18 @@ Increasing and decreasing brightness stops at 1 so the lights stay on, unless "A
 
 Effect, palette and preset names are loaded from the WLED over HTTP when the module connects. Preset names reload automatically when presets are saved on the WLED.
 
+### Ready-made buttons
+
+The Presets tab has ready-made buttons for this connection:
+
+- **Power & Brightness**: power toggle, a brightness dial (turn to dim, press to toggle power) and 25/50/75/100% buttons
+- **Presets & Playlists**: one button per preset saved on the WLED, plus next/previous preset, playlist next/stop and a night light toggle
+- **Segments**: power, brightness dial and freeze buttons for each segment, labelled with the segment's name
+- **Effects**: a set of common effects, and speed/intensity dials labelled with what the current effect calls them
+- **Colors** and **Device** (live data override, sync send)
+
+The preset and segment buttons follow the WLED: when you save, rename or delete a preset, or change the segments, the list updates. A button you already placed for a preset that was later deleted keeps working as a button, but its label shows `$NA` until you remove it or point it at another preset.
+
 ### Supported feedbacks
 
 - Get the power state for the whole WLED device
