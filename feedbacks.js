@@ -57,7 +57,7 @@ export function setupFeedbacks(instance) {
 			],
 			callback: (feedback, context) => {
 				const segment = instance.getSegment(feedback.options.selectedSegment)
-				if (segment) {
+				if (segment?.bri !== undefined) {
 					return { text: String(segment.bri) }
 				}
 				return {}
@@ -91,8 +91,9 @@ export function setupFeedbacks(instance) {
 			],
 			callback: (feedback, context) => {
 				const segment = instance.getSegment(feedback.options.selectedSegment)
-				if (segment) {
-					return { text: String(segment[feedback.options.selectedParameter]) }
+				const value = segment?.[feedback.options.selectedParameter]
+				if (value !== undefined) {
+					return { text: String(value) }
 				}
 				return {}
 			},

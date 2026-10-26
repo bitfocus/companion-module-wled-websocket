@@ -83,14 +83,20 @@ export default class WLEDInstance extends InstanceBase {
 		}
 		this.closeWebSocket()
 
-		if (!this.config.targetIp) {
+		if (!this.getHost()) {
 			this.updateStatus(InstanceStatus.BadConfig, `IP address is missing`)
 			return
 		}
 
 		this.updateStatus(InstanceStatus.Connecting)
 
-		const ws = new WebSocket('ws://' + this.config.targetIp + '/ws')
+		let ws
+		try {
+			ws = new WebSocket('ws://' + this.getHost() + '/ws')
+		} catch (e) {
+			this.updateStatus(InstanceStatus.BadConfig, `Invalid IP address: ${e.message}`)
+			return
+		}
 		this.ws = ws
 
 		ws.on('open', () => {
@@ -127,6 +133,14 @@ export default class WLEDInstance extends InstanceBase {
 		ws.on('error', (data) => {
 			this.log('error', `WebSocket error: ${data}`)
 		})
+	}
+
+	// The host (and optional port) of the WLED device, without stray spaces or a pasted http:// or ws:// prefix
+	getHost() {
+		return String(this.config.targetIp ?? '')
+			.trim()
+			.replace(/^(https?|wss?):\/\//i, '')
+			.replace(/\/+$/, '')
 	}
 
 	send(payload) {

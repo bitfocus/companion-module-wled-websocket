@@ -1,3 +1,14 @@
+// Converts a resolved option value to a number. Returns undefined (and logs why) when an
+// expression or variable produced something that isn't a number, so no command is sent.
+function numberOption(instance, value, label) {
+	const number = Number(value)
+	if (value === '' || value === null || value === undefined || !Number.isFinite(number)) {
+		instance.log('warn', `Invalid ${label} "${value}", command not sent`)
+		return undefined
+	}
+	return number
+}
+
 // WLED accepts "t" to toggle a power state on the device itself
 function targetPowerState(selectedState) {
 	return selectedState == 0 ? true : selectedState == 1 ? false : 't'
@@ -71,12 +82,14 @@ export function setupActions(instance) {
 					default: 127,
 					min: 0,
 					max: 255,
+					clampValues: true,
+					asInteger: true,
 				},
 			],
 			callback: async (action) => {
-				instance.send({
-					bri: Number(action.options.targetBrightness),
-				})
+				const bri = numberOption(instance, action.options.targetBrightness, 'brightness')
+				if (bri === undefined) return
+				instance.send({ bri })
 			},
 		},
 		setSegBrightness: {
@@ -97,14 +110,18 @@ export function setupActions(instance) {
 					default: 127,
 					min: 0,
 					max: 255,
+					clampValues: true,
+					asInteger: true,
 				},
 			],
 			callback: async (action) => {
 				if (!instance.getSegment(action.options.selectedSegment)) return
+				const bri = numberOption(instance, action.options.targetBrightness, 'brightness')
+				if (bri === undefined) return
 				instance.send({
 					seg: {
 						id: Number(action.options.selectedSegment),
-						bri: Number(action.options.targetBrightness),
+						bri,
 					},
 				})
 			},
@@ -126,6 +143,8 @@ export function setupActions(instance) {
 					id: 'red',
 					min: 0,
 					max: 255,
+					clampValues: true,
+					asInteger: true,
 					default: 128,
 				},
 				{
@@ -134,6 +153,8 @@ export function setupActions(instance) {
 					id: 'green',
 					min: 0,
 					max: 255,
+					clampValues: true,
+					asInteger: true,
 					default: 128,
 				},
 				{
@@ -142,6 +163,8 @@ export function setupActions(instance) {
 					id: 'blue',
 					min: 0,
 					max: 255,
+					clampValues: true,
+					asInteger: true,
 					default: 128,
 				},
 			],
@@ -152,12 +175,9 @@ export function setupActions(instance) {
 				// and keep the white channel and the secondary/tertiary colors as they are
 				const col = (segment.col ?? []).map((color) => (Array.isArray(color) ? [...color] : color))
 				const primary = Array.isArray(col[0]) ? col[0] : []
-				col[0] = [
-					Number(action.options.red),
-					Number(action.options.green),
-					Number(action.options.blue),
-					...primary.slice(3),
-				]
+				const rgb = ['red', 'green', 'blue'].map((id) => numberOption(instance, action.options[id], id))
+				if (rgb.includes(undefined)) return
+				col[0] = [...rgb, ...primary.slice(3)]
 				instance.send({
 					seg: {
 						id: Number(action.options.selectedSegment),
@@ -217,11 +237,14 @@ export function setupActions(instance) {
 					default: 127,
 					min: 0,
 					max: 255,
+					clampValues: true,
+					asInteger: true,
 				},
 			],
 			callback: async (action) => {
 				if (!instance.getSegment(action.options.selectedSegment)) return
-				const value = Number(action.options.targetParamValue)
+				const value = numberOption(instance, action.options.targetParamValue, 'parameter value')
+				if (value === undefined) return
 				// Older saved actions may have a mode of 0, which means "Set to value"
 				const mode = action.options.selectedMode || ''
 				instance.send({
@@ -270,12 +293,14 @@ export function setupActions(instance) {
 					default: 1,
 					min: 0,
 					max: 250,
+					clampValues: true,
+					asInteger: true,
 				},
 			],
 			callback: async (action) => {
-				instance.send({
-					ps: Number(action.options.targetPreset),
-				})
+				const ps = numberOption(instance, action.options.targetPreset, 'preset')
+				if (ps === undefined) return
+				instance.send({ ps })
 			},
 		},
 	})
