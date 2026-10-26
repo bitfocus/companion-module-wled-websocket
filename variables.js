@@ -22,6 +22,10 @@ export function setupVariables(instance) {
 		{ variableId: 'ip_address', name: 'IP Address' },
 	]
 
+	for (const [id, name] of Object.entries(instance.presets)) {
+		variables.push({ variableId: `preset_${id}_name`, name: `Preset ${id} Name (${name})` })
+	}
+
 	for (let i = 0; i < instance.segmentCount; i++) {
 		variables.push(
 			{ variableId: `segment_${i + 1}_name`, name: `Segment ${i + 1} Name` },
@@ -74,6 +78,9 @@ export function parseWLEDVariables(instance, data) {
 		variables['brightness'] = data.state.bri ?? 'unknown'
 		variables['preset'] = data.state.ps == -1 ? 'none' : (data.state.ps ?? 'unknown')
 		variables['preset_name'] = data.state.ps == -1 ? 'none' : (instance.presets[data.state.ps] ?? 'unknown')
+		for (const [id, name] of Object.entries(instance.presets)) {
+			variables[`preset_${id}_name`] = name
+		}
 		const playlist = data.state.pl
 		variables['playlist'] = playlist === undefined ? 'unknown' : playlist < 0 ? 'none' : playlist
 		variables['playlist_name'] =
