@@ -486,10 +486,12 @@ export function setupActions(instance) {
 			],
 			callback: async (action) => {
 				if (action.options.command === 'stop') {
-					// WLED unloads a running playlist when an effect is set outside a preset; "~0" keeps the current effect
-					instance.send({ seg: { fx: '~0' } })
+					// WLED unloads a running playlist when a segment's effect is set outside a preset; "~0" keeps the
+					// current effect. The segment has to be given by id: WLED ignores this in the {"seg":{...}} form
+					// WLED doesn't send the new state when a playlist stops, so ask for it with "v"
+					instance.send({ seg: [{ id: instance.state?.mainseg ?? 0, fx: '~0' }], v: true })
 				} else {
-					instance.send({ np: true })
+					instance.send({ np: true, v: true })
 				}
 			},
 		},
