@@ -11,6 +11,10 @@
 		{
 			"name": "Leon Reucher",
 			"email": "leon.reucher@ultimate-technology.de"
+		},
+		{
+			"name": "Elliot Matson",
+			"email": "ematson5897@gmail.com"
 		}
 	],
 	"legacyIds": ["wled-ws"],
