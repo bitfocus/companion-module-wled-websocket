@@ -240,6 +240,37 @@ export function setupActions(instance) {
                 }
             },
         },
+        setLiveOverride: {
+            name: "Live Data Override",
+            description: "Control whether realtime sources (i.e. DDP, DMX, etc) may take over the WLED controller",
+            options: [
+                {
+                    type: 'dropdown',
+                    label: 'Mode',
+                    id: 'mode',
+                    default: 'toggle',
+                    choices: [
+                        { id: 'allow', label: "Allow live data (0)" },
+                        { id: 'block', label: "Block live data (1)" },
+                        { id: 'blockReboot', label: "Block live data until controller reboot (2)" },
+                        { id: 'toggle', label: "Toggle allow / block (0 <-> 1)" },
+                    ],
+                },
+            ],
+            callback: async (action, context) => {
+                const modes = { allow: 0, block: 1, blockReboot: 2 }
+                const lor = action.options.mode === 'toggle'
+                    ? (instance.lor === 0 ? 1 : 0)
+                    : modes[action.options.mode]
+                instance.ws.send(
+                    JSON.stringify({
+                        "lor": lor,
+                        // WLED doesn't send the updated state to the websocket upon updating lor; setting "v" to true tells it to return the state manually
+                        "v": true
+                    })
+                )
+            },
+        },
         loadPreset: {
             name: "Load Preset",
             description: "Load a previously saved preset",
