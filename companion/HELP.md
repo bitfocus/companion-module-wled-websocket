@@ -69,3 +69,4 @@ For each segment (replace X with segment number, starting at 1):
 - `$(wled-websocket:segment_X_effect_custom_1)` - Segment X Effect Custom Slider 1
 - `$(wled-websocket:segment_X_effect_custom_2)` - Segment X Effect Custom Slider 2
 - `$(wled-websocket:segment_X_effect_custom_3)` - Segment X Effect Custom Slider 3
+- `$(wled-websocket:segment_X_speed_label)`, `…_intensity_label`, `…_custom_1_label`, `…_custom_2_label`, `…_custom_3_label` - What the current effect calls each slider (for example "Duty cycle"); empty when the effect doesn't use that slider
