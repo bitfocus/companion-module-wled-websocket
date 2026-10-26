@@ -113,7 +113,7 @@ export function setupActions(instance) {
 				if (!instance.getSegment(action.options.selectedSegment)) return
 				instance.send({
 					seg: {
-						id: Number(action.options.selectedSegment),
+						id: instance.getSegmentId(action.options.selectedSegment),
 						on: targetPowerState(action.options.selectedState),
 					},
 				})
@@ -139,7 +139,7 @@ export function setupActions(instance) {
 				if (bri === undefined) return
 				instance.send({
 					seg: {
-						id: Number(action.options.selectedSegment),
+						id: instance.getSegmentId(action.options.selectedSegment),
 						bri,
 					},
 				})
@@ -203,7 +203,7 @@ export function setupActions(instance) {
 				col[slot] = [...splitColor(color), ...(action.options.setWhite ? [white] : current.slice(3))]
 				instance.send({
 					seg: {
-						id: Number(action.options.selectedSegment),
+						id: instance.getSegmentId(action.options.selectedSegment),
 						col: col,
 					},
 				})
@@ -267,7 +267,7 @@ export function setupActions(instance) {
 				const mode = action.options.selectedMode || ''
 				instance.send({
 					seg: {
-						id: Number(action.options.selectedSegment),
+						id: instance.getSegmentId(action.options.selectedSegment),
 						[action.options.selectedParameter]: mode ? mode + value : value,
 					},
 				})
@@ -282,6 +282,7 @@ export function setupActions(instance) {
 					label: 'Mode',
 					id: 'mode',
 					default: 'toggle',
+					disableAutoExpression: true,
 					choices: [
 						{ id: 'allow', label: 'Allow live data (0)' },
 						{ id: 'block', label: 'Block live data (1)' },
@@ -311,13 +312,16 @@ export function setupActions(instance) {
 					id: 'effect',
 					default: 0,
 					choices: instance.getEffectChoices(),
+					// The names come from the device, so effects can also be entered by number
+					allowCustom: true,
+					regex: '/^\\d+$/',
 				},
 			],
 			callback: async (action) => {
 				if (!instance.getSegment(action.options.selectedSegment)) return
 				instance.send({
 					seg: {
-						id: Number(action.options.selectedSegment),
+						id: instance.getSegmentId(action.options.selectedSegment),
 						fx: Number(action.options.effect),
 					},
 				})
@@ -339,13 +343,16 @@ export function setupActions(instance) {
 					id: 'palette',
 					default: 0,
 					choices: instance.getPaletteChoices(),
+					// The names come from the device, so palettes can also be entered by number
+					allowCustom: true,
+					regex: '/^\\d+$/',
 				},
 			],
 			callback: async (action) => {
 				if (!instance.getSegment(action.options.selectedSegment)) return
 				instance.send({
 					seg: {
-						id: Number(action.options.selectedSegment),
+						id: instance.getSegmentId(action.options.selectedSegment),
 						pal: Number(action.options.palette),
 					},
 				})
@@ -422,8 +429,8 @@ export function setupActions(instance) {
 				const first = numberOption(instance, action.options.first, 'first preset')
 				const last = numberOption(instance, action.options.last, 'last preset')
 				if (first === undefined || last === undefined) return
-				if (first >= last) {
-					instance.log('warn', `First preset (${first}) must be lower than last preset (${last}), command not sent`)
+				if (first > last) {
+					instance.log('warn', `First preset (${first}) must not be above last preset (${last}), command not sent`)
 					return
 				}
 				const direction = action.options.direction
@@ -437,7 +444,7 @@ export function setupActions(instance) {
 					// Preset names not loaded: fall back to WLED's "first~last~" (next), "first~last~-" (previous)
 					// and "first~lastr" (random)
 					const suffix = { next: '~', previous: '~-', random: 'r' }[direction] ?? '~'
-					instance.send({ ps: `${first}~${last}${suffix}` })
+					instance.send({ ps: first === last ? first : `${first}~${last}${suffix}` })
 					return
 				}
 				const current = instance.state?.ps ?? -1
@@ -499,6 +506,7 @@ export function setupActions(instance) {
 					label: 'Only for the next change',
 					id: 'once',
 					default: false,
+					disableAutoExpression: true,
 					tooltip: 'Use this transition for the next change only, then return to the normal transition time',
 				},
 			],
@@ -507,7 +515,8 @@ export function setupActions(instance) {
 				if (seconds === undefined) return
 				// WLED counts transitions in tenths of a second
 				const tenths = Math.round(seconds * 10)
-				instance.send(action.options.once ? { tt: tenths } : { transition: tenths })
+				// WLED doesn't send the new state after a transition change, so ask for it with "v"
+				instance.send(action.options.once ? { tt: tenths } : { transition: tenths, v: true })
 			},
 		},
 		nightLight: {
@@ -607,7 +616,7 @@ export function setupActions(instance) {
 				if (!instance.getSegment(action.options.selectedSegment)) return
 				instance.send({
 					seg: {
-						id: Number(action.options.selectedSegment),
+						id: instance.getSegmentId(action.options.selectedSegment),
 						[action.options.option]: targetPowerState(action.options.selectedState),
 					},
 				})
@@ -635,7 +644,7 @@ export function setupActions(instance) {
 				if (cct === undefined) return
 				instance.send({
 					seg: {
-						id: Number(action.options.selectedSegment),
+						id: instance.getSegmentId(action.options.selectedSegment),
 						cct,
 					},
 				})
@@ -659,12 +668,14 @@ export function setupActions(instance) {
 				},
 			],
 			callback: async (action) => {
-				instance.send({ udpn: { send: targetPowerState(action.options.selectedState) } })
+				// WLED doesn't send the new state after a sync change, so ask for it with "v"
+				instance.send({ udpn: { send: targetPowerState(action.options.selectedState) }, v: true })
 			},
 		},
 		reboot: {
 			name: 'Reboot WLED',
-			description: 'Restart the WLED controller. The lights go out briefly and the connection drops until it is back.',
+			description:
+				'Restart the WLED controller. The lights go out briefly and the connection drops; it comes back by itself if Reconnect is on in the connection settings.',
 			options: [],
 			callback: async () => {
 				instance.send({ rb: true })

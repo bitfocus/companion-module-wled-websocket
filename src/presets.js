@@ -118,7 +118,7 @@ export function setupPresets(instance) {
 					down: [
 						{
 							actionId: 'cyclePreset',
-							options: { direction, first, last: Math.max(last, first + 1) },
+							options: { direction, first, last },
 						},
 					],
 					up: [],
@@ -148,7 +148,7 @@ export function setupPresets(instance) {
 	presets.nightlight_toggle = {
 		type: 'simple',
 		name: 'Night light toggle (fades to off over 60 minutes)',
-		style: style(`Night\\n${v('nightlight_remaining')}s`),
+		style: style('Night\\nlight'),
 		steps: [
 			{
 				down: [

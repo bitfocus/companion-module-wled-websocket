@@ -102,6 +102,8 @@ export function setupFeedbacks(instance) {
 					id: 'effect',
 					default: 0,
 					choices: instance.getEffectChoices(),
+					allowCustom: true,
+					regex: '/^\\d+$/',
 				},
 			],
 			callback: (feedback) => {

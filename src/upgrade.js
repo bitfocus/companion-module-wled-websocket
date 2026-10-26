@@ -82,4 +82,25 @@ export const upgradeScripts = [
 
 		return result
 	},
+
+	// Set Segment Effect Parameter: module versions 1.0.x saved an unchanged Mode as 0, which isn't one of
+	// the choices, so store it as '' ("Set to value")
+	function (context, props) {
+		const result = {
+			updatedConfig: null,
+			updatedActions: [],
+			updatedFeedbacks: [],
+		}
+
+		for (const action of props.actions) {
+			if (action.actionId !== 'setSegEffectParams') continue
+			const mode = action.options.selectedMode
+			if (mode !== undefined && (mode.isExpression || (mode.value !== 0 && mode.value !== '0'))) continue
+
+			action.options.selectedMode = { isExpression: false, value: '' }
+			result.updatedActions.push(action)
+		}
+
+		return result
+	},
 ]

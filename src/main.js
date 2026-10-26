@@ -26,8 +26,10 @@ const SLIDERS = [
 
 // Reads the slider labels from an effect's /json/fxdata entry, e.g. "!,Duty cycle;!,!;!;01".
 // The first ";" section lists the labels: "!" means the default name, and an empty or missing
-// label means the effect doesn't use that slider. Returns { sx: 'Speed', ix: 'Duty cycle', … }.
-function parseEffectSliders(fxdata) {
+// label means the effect doesn't use that slider. An effect with no data at all (other than Solid,
+// effect 0) uses Speed and Intensity, as in WLED's own UI. Returns { sx: 'Speed', ix: 'Duty cycle', … }.
+function parseEffectSliders(fxdata, effectId) {
+	if (!fxdata && effectId > 0) fxdata = '!,!'
 	const labels = String(fxdata ?? '')
 		.split(';')[0]
 		.split(',')
@@ -81,6 +83,8 @@ export default class WLEDInstance extends InstanceBase {
 		this.config = config
 		// The device may have changed, so reload the preset names on the next info message
 		this.presetsModified = undefined
+		// The ready-made buttons' text uses the connection label, which may have changed
+		this.initPresets()
 		this.initWebSocket()
 	}
 
@@ -140,6 +144,8 @@ export default class WLEDInstance extends InstanceBase {
 		ws.on('open', () => {
 			this.updateStatus(InstanceStatus.Ok)
 			this.lastError = null
+			// Reload the preset names after a reconnect too, in case the last load failed
+			this.presetsModified = undefined
 			this.loadEffectsAndPalettes()
 
 			ws.missedPongs = 0
@@ -205,24 +211,32 @@ export default class WLEDInstance extends InstanceBase {
 	}
 
 	async loadEffectsAndPalettes() {
-		try {
-			const [effects, palettes, fxdata] = await Promise.all([
-				this.fetchJson('/json/eff'),
-				this.fetchJson('/json/pal'),
-				this.fetchJson('/json/fxdata'),
-			])
-			this.effects = Array.isArray(effects) ? effects : []
-			this.palettes = Array.isArray(palettes) ? palettes : []
-			this.effectSliders = Array.isArray(fxdata) ? fxdata.map(parseEffectSliders) : []
-			this.namesUpdated()
-		} catch (e) {
-			this.log('warn', `Could not load effect and palette names: ${e.message}`)
+		// Load each list on its own, so one failed request (fxdata is the largest) doesn't lose the others
+		const [effects, palettes, fxdata] = await Promise.allSettled([
+			this.fetchJson('/json/eff'),
+			this.fetchJson('/json/pal'),
+			this.fetchJson('/json/fxdata'),
+		])
+		if (!this.isInitialized) return
+		for (const [name, result] of [
+			['effect names', effects],
+			['palette names', palettes],
+			['effect slider labels', fxdata],
+		]) {
+			if (result.status === 'rejected') this.log('warn', `Could not load ${name}: ${result.reason?.message}`)
 		}
+		if (effects.status === 'fulfilled' && Array.isArray(effects.value)) this.effects = effects.value
+		if (palettes.status === 'fulfilled' && Array.isArray(palettes.value)) this.palettes = palettes.value
+		if (fxdata.status === 'fulfilled' && Array.isArray(fxdata.value)) {
+			this.effectSliders = fxdata.value.map((entry, id) => parseEffectSliders(entry, id))
+		}
+		if ([effects, palettes, fxdata].some((result) => result.status === 'fulfilled')) this.namesUpdated()
 	}
 
 	async loadPresets() {
 		try {
 			const presets = await this.fetchJson('/presets.json')
+			if (!this.isInitialized) return
 			this.presets = {}
 			this.playlists = new Set()
 			for (const [id, preset] of Object.entries(presets ?? {})) {
@@ -303,6 +317,12 @@ export default class WLEDInstance extends InstanceBase {
 	getSegment(index) {
 		const i = Number(index)
 		return Number.isInteger(i) && i >= 0 && i < this.segments.length ? this.segments[i] : undefined
+	}
+
+	// The id to send to WLED for the segment at the given index. WLED leaves deleted segments out of
+	// its list until it reboots, so a segment's position in the list can differ from its id.
+	getSegmentId(index) {
+		return this.getSegment(index)?.id ?? Number(index)
 	}
 
 	getSegmentChoices() {
