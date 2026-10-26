@@ -29,6 +29,11 @@ export function setupVariables(instance) {
 			{ variableId: `segment_${i + 1}_effect_custom_1`, name: `Segment ${i + 1} Effect Custom Slider 1` },
 			{ variableId: `segment_${i + 1}_effect_custom_2`, name: `Segment ${i + 1} Effect Custom Slider 2` },
 			{ variableId: `segment_${i + 1}_effect_custom_3`, name: `Segment ${i + 1} Effect Custom Slider 3` },
+			{ variableId: `segment_${i + 1}_speed_label`, name: `Segment ${i + 1} Speed Label` },
+			{ variableId: `segment_${i + 1}_intensity_label`, name: `Segment ${i + 1} Intensity Label` },
+			{ variableId: `segment_${i + 1}_custom_1_label`, name: `Segment ${i + 1} Custom Slider 1 Label` },
+			{ variableId: `segment_${i + 1}_custom_2_label`, name: `Segment ${i + 1} Custom Slider 2 Label` },
+			{ variableId: `segment_${i + 1}_custom_3_label`, name: `Segment ${i + 1} Custom Slider 3 Label` },
 		)
 	}
 	instance.setVariableDefinitions(Object.fromEntries(variables.map(({ variableId, name }) => [variableId, { name }])))
@@ -71,6 +76,13 @@ export function parseWLEDVariables(instance, data) {
 				variables[`segment_${i + 1}_effect_custom_1`] = data.state.seg[i]?.c1 ?? 'unknown'
 				variables[`segment_${i + 1}_effect_custom_2`] = data.state.seg[i]?.c2 ?? 'unknown'
 				variables[`segment_${i + 1}_effect_custom_3`] = data.state.seg[i]?.c3 ?? 'unknown'
+				// What the current effect calls each slider; empty when the effect doesn't use it
+				const sliders = instance.effectSliders[data.state.seg[i]?.fx]
+				variables[`segment_${i + 1}_speed_label`] = sliders?.sx ?? 'unknown'
+				variables[`segment_${i + 1}_intensity_label`] = sliders?.ix ?? 'unknown'
+				variables[`segment_${i + 1}_custom_1_label`] = sliders?.c1 ?? 'unknown'
+				variables[`segment_${i + 1}_custom_2_label`] = sliders?.c2 ?? 'unknown'
+				variables[`segment_${i + 1}_custom_3_label`] = sliders?.c3 ?? 'unknown'
 			}
 		}
 	}

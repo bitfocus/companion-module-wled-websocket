@@ -14,6 +14,30 @@ const HTTP_TIMEOUT = 5000
 
 export const UpgradeScripts = upgradeScripts
 
+// The effect parameters in the order WLED's effect metadata lists their slider labels
+const SLIDERS = [
+	{ id: 'sx', name: 'Speed' },
+	{ id: 'ix', name: 'Intensity' },
+	{ id: 'c1', name: 'Custom 1' },
+	{ id: 'c2', name: 'Custom 2' },
+	{ id: 'c3', name: 'Custom 3' },
+]
+
+// Reads the slider labels from an effect's /json/fxdata entry, e.g. "!,Duty cycle;!,!;!;01".
+// The first ";" section lists the labels: "!" means the default name, and an empty or missing
+// label means the effect doesn't use that slider. Returns { sx: 'Speed', ix: 'Duty cycle', … }.
+function parseEffectSliders(fxdata) {
+	const labels = String(fxdata ?? '')
+		.split(';')[0]
+		.split(',')
+	const sliders = {}
+	SLIDERS.forEach((slider, i) => {
+		const label = labels[i]?.trim()
+		sliders[slider.id] = !label ? '' : label === '!' ? slider.name : label
+	})
+	return sliders
+}
+
 export default class WLEDInstance extends InstanceBase {
 	isInitialized = false
 
@@ -28,6 +52,7 @@ export default class WLEDInstance extends InstanceBase {
 		this.state = null
 		// Names loaded over HTTP, since the WebSocket API doesn't send them
 		this.effects = []
+		this.effectSliders = []
 		this.palettes = []
 		this.presets = {}
 		this.presetsModified = undefined
@@ -111,6 +136,7 @@ export default class WLEDInstance extends InstanceBase {
 
 		ws.on('open', () => {
 			this.updateStatus(InstanceStatus.Ok)
+			this.lastError = null
 			this.loadEffectsAndPalettes()
 
 			ws.missedPongs = 0
@@ -142,7 +168,11 @@ export default class WLEDInstance extends InstanceBase {
 		ws.on('message', this.messageReceivedFromWebSocket.bind(this))
 
 		ws.on('error', (data) => {
-			this.log('error', `WebSocket error: ${data}`)
+			// While the device is offline every reconnect attempt fails the same way, so only log a
+			// repeated error at debug level
+			const message = `WebSocket error: ${data}`
+			this.log(message === this.lastError ? 'debug' : 'error', message)
+			this.lastError = message
 		})
 	}
 
@@ -173,9 +203,14 @@ export default class WLEDInstance extends InstanceBase {
 
 	async loadEffectsAndPalettes() {
 		try {
-			const [effects, palettes] = await Promise.all([this.fetchJson('/json/eff'), this.fetchJson('/json/pal')])
+			const [effects, palettes, fxdata] = await Promise.all([
+				this.fetchJson('/json/eff'),
+				this.fetchJson('/json/pal'),
+				this.fetchJson('/json/fxdata'),
+			])
 			this.effects = Array.isArray(effects) ? effects : []
 			this.palettes = Array.isArray(palettes) ? palettes : []
+			this.effectSliders = Array.isArray(fxdata) ? fxdata.map(parseEffectSliders) : []
 			this.namesUpdated()
 		} catch (e) {
 			this.log('warn', `Could not load effect and palette names: ${e.message}`)
@@ -225,7 +260,6 @@ export default class WLEDInstance extends InstanceBase {
 	}
 
 	parseWLEDInfo(data) {
-		this.rgbw = data.leds?.rgbw
 		// fs.pmt is the time the presets were last modified, so reload the names when it changes
 		const presetsModified = data.fs?.pmt
 		if (presetsModified !== this.presetsModified) {
@@ -241,6 +275,7 @@ export default class WLEDInstance extends InstanceBase {
 		} catch (e) {
 			return
 		}
+		if (msgValue === null || typeof msgValue !== 'object') return
 		if (msgValue.state != null) {
 			this.parseWLEDState(msgValue.state)
 		}
@@ -293,7 +328,6 @@ export default class WLEDInstance extends InstanceBase {
 				id: 'bonjourHost',
 				label: 'WLED device',
 				width: 6,
-				disableAutoExpression: true,
 			},
 			{
 				type: 'textinput',
@@ -316,7 +350,6 @@ export default class WLEDInstance extends InstanceBase {
 				label: 'Poll for updates',
 				width: 6,
 				default: false,
-				disableAutoExpression: true,
 			},
 			{
 				type: 'number',

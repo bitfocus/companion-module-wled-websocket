@@ -77,6 +77,7 @@ export function setupActions(instance) {
 					label: 'State',
 					id: 'selectedState',
 					default: 0,
+					disableAutoExpression: true,
 					choices: [
 						{ id: 0, label: 'Turn On' },
 						{ id: 1, label: 'Turn Off' },
@@ -106,6 +107,7 @@ export function setupActions(instance) {
 					label: 'State',
 					id: 'selectedState',
 					default: 0,
+					disableAutoExpression: true,
 					choices: [
 						{ id: 0, label: 'Turn On' },
 						{ id: 1, label: 'Turn Off' },
