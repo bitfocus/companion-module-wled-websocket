@@ -95,13 +95,7 @@ export function setupActions(instance) {
 			name: 'Turn On / Turn Off / Toggle Segment',
 			description: 'Set the power state of a segment',
 			options: [
-				{
-					type: 'dropdown',
-					label: 'Segment',
-					id: 'selectedSegment',
-					default: 0,
-					choices: instance.getSegmentChoices(),
-				},
+				instance.getSegmentOption(),
 				{
 					type: 'dropdown',
 					label: 'State',
@@ -138,16 +132,7 @@ export function setupActions(instance) {
 		setSegBrightness: {
 			name: 'Set Segment Brightness',
 			description: 'Set, increase or decrease the brightness of a segment',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Segment',
-					id: 'selectedSegment',
-					default: 0,
-					choices: instance.getSegmentChoices(),
-				},
-				...brightnessOptions,
-			],
+			options: [instance.getSegmentOption(), ...brightnessOptions],
 			callback: async (action) => {
 				if (!instance.getSegment(action.options.selectedSegment)) return
 				const bri = brightnessValue(instance, action.options)
@@ -164,13 +149,7 @@ export function setupActions(instance) {
 			name: 'Set Segment Color',
 			description: 'Set one of the colors of a segment',
 			options: [
-				{
-					type: 'dropdown',
-					label: 'Segment',
-					id: 'selectedSegment',
-					default: 0,
-					choices: instance.getSegmentChoices(),
-				},
+				instance.getSegmentOption(),
 				{
 					type: 'dropdown',
 					label: 'Color slot',
@@ -268,13 +247,7 @@ export function setupActions(instance) {
 						{ id: '~-', label: 'Decrement by' },
 					],
 				},
-				{
-					type: 'dropdown',
-					label: 'Segment',
-					id: 'selectedSegment',
-					default: 0,
-					choices: instance.getSegmentChoices(),
-				},
+				instance.getSegmentOption(),
 				{
 					type: 'number',
 					label: 'Parameter Value',
@@ -331,13 +304,7 @@ export function setupActions(instance) {
 			name: 'Set Segment Effect',
 			description: 'Set the effect of a segment',
 			options: [
-				{
-					type: 'dropdown',
-					label: 'Segment',
-					id: 'selectedSegment',
-					default: 0,
-					choices: instance.getSegmentChoices(),
-				},
+				instance.getSegmentOption(),
 				{
 					type: 'dropdown',
 					label: 'Effect',
@@ -365,13 +332,7 @@ export function setupActions(instance) {
 			name: 'Set Segment Palette',
 			description: 'Set the color palette of a segment',
 			options: [
-				{
-					type: 'dropdown',
-					label: 'Segment',
-					id: 'selectedSegment',
-					default: 0,
-					choices: instance.getSegmentChoices(),
-				},
+				instance.getSegmentOption(),
 				{
 					type: 'dropdown',
 					label: 'Palette',
@@ -611,6 +572,102 @@ export function setupActions(instance) {
 						tbri: targetBrightness,
 					},
 				})
+			},
+		},
+		setSegOption: {
+			name: 'Segment Freeze / Reverse / Mirror',
+			description: 'Turn a segment option on, off or toggle it',
+			options: [
+				instance.getSegmentOption(),
+				{
+					type: 'dropdown',
+					label: 'Option',
+					id: 'option',
+					default: 'frz',
+					choices: [
+						{ id: 'frz', label: 'Freeze (pause the effect)' },
+						{ id: 'rev', label: 'Reverse' },
+						{ id: 'mi', label: 'Mirror' },
+					],
+				},
+				{
+					type: 'dropdown',
+					label: 'State',
+					id: 'selectedState',
+					default: 2,
+					disableAutoExpression: true,
+					choices: [
+						{ id: 0, label: 'Turn On' },
+						{ id: 1, label: 'Turn Off' },
+						{ id: 2, label: 'Toggle' },
+					],
+				},
+			],
+			callback: async (action) => {
+				if (!instance.getSegment(action.options.selectedSegment)) return
+				instance.send({
+					seg: {
+						id: Number(action.options.selectedSegment),
+						[action.options.option]: targetPowerState(action.options.selectedState),
+					},
+				})
+			},
+		},
+		setSegCct: {
+			name: 'Set Segment Color Temperature',
+			description: 'Set the white color temperature of a segment, on strips with tunable white (CCT)',
+			options: [
+				instance.getSegmentOption(),
+				{
+					type: 'number',
+					label: 'Color temperature (0 = warm, 255 = cold)',
+					id: 'cct',
+					default: 127,
+					min: 0,
+					max: 255,
+					clampValues: true,
+					asInteger: true,
+				},
+			],
+			callback: async (action) => {
+				if (!instance.getSegment(action.options.selectedSegment)) return
+				const cct = numberOption(instance, action.options.cct, 'color temperature')
+				if (cct === undefined) return
+				instance.send({
+					seg: {
+						id: Number(action.options.selectedSegment),
+						cct,
+					},
+				})
+			},
+		},
+		setSyncSend: {
+			name: 'Sync: Send Changes',
+			description: 'Turn on, off or toggle sending changes to other WLED devices in the same sync group',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'State',
+					id: 'selectedState',
+					default: 2,
+					disableAutoExpression: true,
+					choices: [
+						{ id: 0, label: 'Turn On' },
+						{ id: 1, label: 'Turn Off' },
+						{ id: 2, label: 'Toggle' },
+					],
+				},
+			],
+			callback: async (action) => {
+				instance.send({ udpn: { send: targetPowerState(action.options.selectedState) } })
+			},
+		},
+		reboot: {
+			name: 'Reboot WLED',
+			description: 'Restart the WLED controller. The lights go out briefly and the connection drops until it is back.',
+			options: [],
+			callback: async () => {
+				instance.send({ rb: true })
 			},
 		},
 	})

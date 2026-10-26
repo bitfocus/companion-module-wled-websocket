@@ -9,6 +9,8 @@ export function setupVariables(instance) {
 		{ variableId: 'transition', name: 'Transition Time (seconds)' },
 		{ variableId: 'nightlight', name: 'Night Light On' },
 		{ variableId: 'nightlight_remaining', name: 'Night Light Time Remaining (seconds)' },
+		{ variableId: 'sync_send', name: 'Sync Sending' },
+		{ variableId: 'sync_receive', name: 'Sync Receiving' },
 		{ variableId: 'version', name: 'WLED Version' },
 		{ variableId: 'processor', name: 'WLED Processor' },
 		{ variableId: 'led_count', name: 'LED Count' },
@@ -22,9 +24,14 @@ export function setupVariables(instance) {
 
 	for (let i = 0; i < instance.segmentCount; i++) {
 		variables.push(
+			{ variableId: `segment_${i + 1}_name`, name: `Segment ${i + 1} Name` },
 			{ variableId: `segment_${i + 1}_power`, name: `Segment ${i + 1} Power` },
 			{ variableId: `segment_${i + 1}_brightness`, name: `Segment ${i + 1} Brightness` },
 			{ variableId: `segment_${i + 1}_color`, name: `Segment ${i + 1} Color` },
+			{ variableId: `segment_${i + 1}_cct`, name: `Segment ${i + 1} Color Temperature` },
+			{ variableId: `segment_${i + 1}_freeze`, name: `Segment ${i + 1} Freeze` },
+			{ variableId: `segment_${i + 1}_reverse`, name: `Segment ${i + 1} Reverse` },
+			{ variableId: `segment_${i + 1}_mirror`, name: `Segment ${i + 1} Mirror` },
 			{ variableId: `segment_${i + 1}_effect`, name: `Segment ${i + 1} Effect` },
 			{ variableId: `segment_${i + 1}_effect_name`, name: `Segment ${i + 1} Effect Name` },
 			{ variableId: `segment_${i + 1}_palette`, name: `Segment ${i + 1} Palette` },
@@ -74,12 +81,19 @@ export function parseWLEDVariables(instance, data) {
 		// WLED reports the transition time in tenths of a second
 		variables['transition'] = data.state.transition === undefined ? 'unknown' : data.state.transition / 10
 		variables['nightlight'] = data.state.nl?.on ?? 'unknown'
+		variables['sync_send'] = data.state.udpn?.send ?? 'unknown'
+		variables['sync_receive'] = data.state.udpn?.recv ?? 'unknown'
 		variables['nightlight_remaining'] = data.state.nl?.on ? Math.max(0, data.state.nl.rem ?? 0) : 0
 		if (data.state.seg != null) {
 			for (let i = 0; i < instance.segmentCount; i++) {
+				variables[`segment_${i + 1}_name`] = data.state.seg[i]?.n ?? `Segment ${i + 1}`
 				variables[`segment_${i + 1}_power`] = data.state.seg[i]?.on ?? 'unknown'
 				variables[`segment_${i + 1}_brightness`] = data.state.seg[i]?.bri ?? 'unknown'
 				variables[`segment_${i + 1}_color`] = primaryColorHex(data.state.seg[i]?.col) ?? 'unknown'
+				variables[`segment_${i + 1}_cct`] = data.state.seg[i]?.cct ?? 'unknown'
+				variables[`segment_${i + 1}_freeze`] = data.state.seg[i]?.frz ?? 'unknown'
+				variables[`segment_${i + 1}_reverse`] = data.state.seg[i]?.rev ?? 'unknown'
+				variables[`segment_${i + 1}_mirror`] = data.state.seg[i]?.mi ?? 'unknown'
 				variables[`segment_${i + 1}_effect`] = data.state.seg[i]?.fx ?? 'unknown'
 				variables[`segment_${i + 1}_effect_name`] = instance.effects[data.state.seg[i]?.fx] ?? 'unknown'
 				variables[`segment_${i + 1}_palette`] = data.state.seg[i]?.pal ?? 'unknown'
