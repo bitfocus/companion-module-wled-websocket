@@ -20,15 +20,7 @@ export function setupFeedbacks(instance) {
 			defaultStyle: activeStyle,
 			name: 'Segment is on',
 			description: 'True when the selected segment is turned on, false when it is not.',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Segment',
-					id: 'selectedSegment',
-					default: 0,
-					choices: instance.getSegmentChoices(),
-				},
-			],
+			options: [instance.getSegmentOption()],
 			callback: (feedback, context) => {
 				return instance.getSegment(feedback.options.selectedSegment)?.on === true
 			},
@@ -46,15 +38,7 @@ export function setupFeedbacks(instance) {
 			type: 'advanced',
 			name: 'Segment Brightness',
 			description: 'Returns the current brightness of a segment(0-255)',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Segment',
-					id: 'selectedSegment',
-					default: 0,
-					choices: instance.getSegmentChoices(),
-				},
-			],
+			options: [instance.getSegmentOption()],
 			callback: (feedback, context) => {
 				const segment = instance.getSegment(feedback.options.selectedSegment)
 				if (segment?.bri !== undefined) {
@@ -68,13 +52,7 @@ export function setupFeedbacks(instance) {
 			name: 'Segment Effect Parameter',
 			description: 'Returns the current state of defined effect parameter in a segment (0-255)',
 			options: [
-				{
-					type: 'dropdown',
-					label: 'Segment',
-					id: 'selectedSegment',
-					default: 0,
-					choices: instance.getSegmentChoices(),
-				},
+				instance.getSegmentOption(),
 				{
 					type: 'dropdown',
 					label: 'Parameter',
@@ -102,15 +80,7 @@ export function setupFeedbacks(instance) {
 			type: 'advanced',
 			name: 'Segment Color',
 			description: 'Returns the current color of defined segment',
-			options: [
-				{
-					type: 'dropdown',
-					label: 'Segment',
-					id: 'selectedSegment',
-					default: 0,
-					choices: instance.getSegmentChoices(),
-				},
-			],
+			options: [instance.getSegmentOption()],
 			callback: (feedback, context) => {
 				const colorArray = instance.getSegment(feedback.options.selectedSegment)?.col?.[0]
 				if (Array.isArray(colorArray)) {
@@ -125,13 +95,7 @@ export function setupFeedbacks(instance) {
 			name: 'Segment effect is',
 			description: 'True when the selected segment is running the selected effect',
 			options: [
-				{
-					type: 'dropdown',
-					label: 'Segment',
-					id: 'selectedSegment',
-					default: 0,
-					choices: instance.getSegmentChoices(),
-				},
+				instance.getSegmentOption(),
 				{
 					type: 'dropdown',
 					label: 'Effect',
@@ -194,6 +158,50 @@ export function setupFeedbacks(instance) {
 			options: [],
 			callback: () => {
 				return instance.state?.nl?.on === true
+			},
+		},
+		segOption: {
+			type: 'boolean',
+			defaultStyle: activeStyle,
+			name: 'Segment freeze / reverse / mirror is on',
+			description: 'True when the selected option is on for the segment',
+			options: [
+				instance.getSegmentOption(),
+				{
+					type: 'dropdown',
+					label: 'Option',
+					id: 'option',
+					default: 'frz',
+					choices: [
+						{ id: 'frz', label: 'Freeze' },
+						{ id: 'rev', label: 'Reverse' },
+						{ id: 'mi', label: 'Mirror' },
+					],
+				},
+			],
+			callback: (feedback) => {
+				return instance.getSegment(feedback.options.selectedSegment)?.[feedback.options.option] === true
+			},
+		},
+		syncState: {
+			type: 'boolean',
+			defaultStyle: activeStyle,
+			name: 'Sync is on',
+			description: 'True when this WLED sends or receives sync changes',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Direction',
+					id: 'direction',
+					default: 'send',
+					choices: [
+						{ id: 'send', label: 'Sending' },
+						{ id: 'recv', label: 'Receiving' },
+					],
+				},
+			],
+			callback: (feedback) => {
+				return instance.state?.udpn?.[feedback.options.direction] === true
 			},
 		},
 		liveDataOverride: {

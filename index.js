@@ -253,8 +253,12 @@ export default class WLEDInstance extends InstanceBase {
 		this.lor = data.lor
 		this.brightness = data.bri
 		const segments = Array.isArray(data.seg) ? data.seg : []
-		if (this.segmentCount != segments.length) {
+		// Segment names appear in the Segment dropdowns, so rebuild them when a name changes too
+		const segmentNames = segments.map((segment) => segment.n ?? '').join('\n')
+		if (this.segmentCount != segments.length || this.segmentNames !== segmentNames) {
 			this.segmentCount = segments.length
+			this.segmentNames = segmentNames
+			this.segments = segments
 			this.initActions()
 			this.initFeedbacks()
 			this.initVariables()
@@ -298,13 +302,26 @@ export default class WLEDInstance extends InstanceBase {
 	getSegmentChoices() {
 		var dropdownChoices = []
 		for (let i = 0; i < this.segmentCount; i++) {
+			const name = this.segments[i]?.n
 			const choice = {
 				id: i,
-				label: `Segment ${i + 1}`,
+				label: name ? `Segment ${i + 1}: ${name}` : `Segment ${i + 1}`,
 			}
 			dropdownChoices.push(choice)
 		}
 		return dropdownChoices
+	}
+
+	// The Segment option shared by every segment action and feedback
+	getSegmentOption() {
+		return {
+			type: 'dropdown',
+			label: 'Segment',
+			id: 'selectedSegment',
+			default: 0,
+			choices: this.getSegmentChoices(),
+			expressionDescription: 'The segment number counting from 0, so Segment 1 is 0',
+		}
 	}
 
 	// Effects sorted by name, without WLED's reserved placeholder slots

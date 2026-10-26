@@ -24,6 +24,12 @@ Pick your WLED controller from the **WLED device** list, which shows WLED contro
 - Skip to the next entry of the running playlist, or stop it
 - Set the transition time, permanently or for the next change only
 - Turn the night light on, off or toggle it, with its duration, mode and target brightness
+- Turn a segment's freeze, reverse or mirror option on, off or toggle it
+- Set a segment's white color temperature, on strips with tunable white (CCT)
+- Turn sending sync changes to other WLED devices on, off or toggle it
+- Reboot the WLED controller
+
+Segments are listed by their WLED name when they have one. When you use an expression for a Segment option, the first segment is 0.
 
 Increasing and decreasing brightness stops at 1 so the lights stay on, unless "Allow dimming to off" is checked. On a rotary encoder, use Increase on the right turn and Decrease on the left turn.
 
@@ -41,6 +47,8 @@ Effect, palette and preset names are loaded from the WLED over HTTP when the mod
 - Whether a given preset is active
 - Whether a playlist (any, or a given one) is running
 - Whether the night light is on
+- Whether a segment's freeze, reverse or mirror option is on
+- Whether sync sending or receiving is on
 - Whether live data override is enabled
 
 ### Supported variables
@@ -52,6 +60,7 @@ Effect, palette and preset names are loaded from the WLED over HTTP when the mod
 - `$(wled-websocket:playlist)` / `$(wled-websocket:playlist_name)` - Running playlist and its name (`none` when no playlist is running)
 - `$(wled-websocket:transition)` - Transition time in seconds
 - `$(wled-websocket:nightlight)` - Whether the night light is on
+- `$(wled-websocket:sync_send)` / `$(wled-websocket:sync_receive)` - Whether sync sending / receiving is on
 - `$(wled-websocket:nightlight_remaining)` - Seconds left on the night light. WLED only reports this when something changes, so turn on **Poll for updates** to keep it counting down
 - `$(wled-websocket:version)` - WLED Version
 - `$(wled-websocket:processor)` - WLED Processor (chip model, e.g. ESP32-D0WD-V3)
@@ -67,9 +76,12 @@ Effect, palette and preset names are loaded from the WLED over HTTP when the mod
 
 For each segment (replace X with segment number, starting at 1):
 
+- `$(wled-websocket:segment_X_name)` - Segment X Name (its WLED name, or "Segment X")
 - `$(wled-websocket:segment_X_power)` - Segment X Power
 - `$(wled-websocket:segment_X_brightness)` - Segment X Brightness
 - `$(wled-websocket:segment_X_color)` - Segment X Color (primary color as #RRGGBB)
+- `$(wled-websocket:segment_X_cct)` - Segment X Color Temperature (0 = warm, 255 = cold)
+- `$(wled-websocket:segment_X_freeze)`, `…_reverse`, `…_mirror` - Segment X options
 - `$(wled-websocket:segment_X_effect)` - Segment X Effect
 - `$(wled-websocket:segment_X_effect_name)` - Segment X Effect Name
 - `$(wled-websocket:segment_X_palette)` - Segment X Palette
