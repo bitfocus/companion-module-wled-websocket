@@ -9,6 +9,8 @@ import { setupVariables, parseWLEDVariables } from './variables.js'
 // is considered dead. Allowing a few misses keeps a brief Wi-Fi hiccup from dropping the connection.
 const HEARTBEAT_INTERVAL = 5000
 const HEARTBEAT_MAX_MISSED = 3
+// Timeout for the HTTP requests that load effect, palette and preset names
+const HTTP_TIMEOUT = 5000
 
 export const UpgradeScripts = upgradeScripts
 
@@ -23,6 +25,12 @@ export default class WLEDInstance extends InstanceBase {
 		this.isOn = false
 		this.lor = 0
 		this.brightness = 0
+		this.state = null
+		// Names loaded over HTTP, since the WebSocket API doesn't send them
+		this.effects = []
+		this.palettes = []
+		this.presets = {}
+		this.presetsModified = undefined
 
 		this.initActions()
 		this.initFeedbacks()
@@ -43,6 +51,8 @@ export default class WLEDInstance extends InstanceBase {
 
 	async configUpdated(config) {
 		this.config = config
+		// The device may have changed, so reload the preset names on the next info message
+		this.presetsModified = undefined
 		this.initWebSocket()
 	}
 
@@ -101,6 +111,7 @@ export default class WLEDInstance extends InstanceBase {
 
 		ws.on('open', () => {
 			this.updateStatus(InstanceStatus.Ok)
+			this.loadEffectsAndPalettes()
 
 			ws.missedPongs = 0
 			this.heartbeat_timer = setInterval(() => {
@@ -151,7 +162,51 @@ export default class WLEDInstance extends InstanceBase {
 		this.ws.send(JSON.stringify(payload))
 	}
 
+	async fetchJson(path) {
+		const response = await fetch(`http://${this.getHost()}${path}`, { signal: AbortSignal.timeout(HTTP_TIMEOUT) })
+		if (!response.ok) throw new Error(`HTTP ${response.status}`)
+		return response.json()
+	}
+
+	async loadEffectsAndPalettes() {
+		try {
+			const [effects, palettes] = await Promise.all([this.fetchJson('/json/eff'), this.fetchJson('/json/pal')])
+			this.effects = Array.isArray(effects) ? effects : []
+			this.palettes = Array.isArray(palettes) ? palettes : []
+			this.namesUpdated()
+		} catch (e) {
+			this.log('warn', `Could not load effect and palette names: ${e.message}`)
+		}
+	}
+
+	async loadPresets() {
+		try {
+			const presets = await this.fetchJson('/presets.json')
+			this.presets = {}
+			for (const [id, preset] of Object.entries(presets ?? {})) {
+				// Preset 0 is an internal placeholder, and unnamed slots are empty
+				if (Number(id) > 0 && preset?.n) {
+					this.presets[id] = preset.n
+				}
+			}
+			this.namesUpdated()
+		} catch (e) {
+			this.log('warn', `Could not load preset names: ${e.message}`)
+		}
+	}
+
+	// Refresh everything that shows effect, palette or preset names
+	namesUpdated() {
+		this.initActions()
+		this.initFeedbacks()
+		if (this.state) {
+			parseWLEDVariables(this, { state: this.state })
+		}
+		this.checkAllFeedbacks()
+	}
+
 	parseWLEDState(data) {
+		this.state = data
 		this.isOn = data.on
 		this.lor = data.lor
 		this.brightness = data.bri
@@ -168,6 +223,12 @@ export default class WLEDInstance extends InstanceBase {
 
 	parseWLEDInfo(data) {
 		this.rgbw = data.leds?.rgbw
+		// fs.pmt is the time the presets were last modified, so reload the names when it changes
+		const presetsModified = data.fs?.pmt
+		if (presetsModified !== this.presetsModified) {
+			this.presetsModified = presetsModified
+			this.loadPresets()
+		}
 	}
 
 	messageReceivedFromWebSocket(data) {
@@ -202,6 +263,24 @@ export default class WLEDInstance extends InstanceBase {
 			dropdownChoices.push(choice)
 		}
 		return dropdownChoices
+	}
+
+	// Effects sorted by name, without WLED's reserved placeholder slots
+	getEffectChoices() {
+		return this.effects
+			.map((name, id) => ({ id, label: name }))
+			.filter((choice) => choice.label && choice.label !== 'RSVD')
+			.sort((a, b) => a.label.localeCompare(b.label))
+	}
+
+	getPaletteChoices() {
+		return this.palettes.map((name, id) => ({ id, label: name }))
+	}
+
+	getPresetChoices() {
+		return Object.entries(this.presets)
+			.map(([id, name]) => ({ id: Number(id), label: `${id}: ${name}` }))
+			.sort((a, b) => a.id - b.id)
 	}
 
 	getConfigFields() {

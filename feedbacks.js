@@ -119,6 +119,52 @@ export function setupFeedbacks(instance) {
 				return {}
 			},
 		},
+		segEffect: {
+			type: 'boolean',
+			defaultStyle: activeStyle,
+			name: 'Segment effect is',
+			description: 'True when the selected segment is running the selected effect',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Segment',
+					id: 'selectedSegment',
+					default: 0,
+					choices: instance.getSegmentChoices(),
+				},
+				{
+					type: 'dropdown',
+					label: 'Effect',
+					id: 'effect',
+					default: 0,
+					choices: instance.getEffectChoices(),
+				},
+			],
+			callback: (feedback) => {
+				const segment = instance.getSegment(feedback.options.selectedSegment)
+				return segment !== undefined && segment.fx === Number(feedback.options.effect)
+			},
+		},
+		presetActive: {
+			type: 'boolean',
+			defaultStyle: activeStyle,
+			name: 'Preset is active',
+			description: 'True when the selected preset is the one currently loaded',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Preset',
+					id: 'preset',
+					default: 1,
+					choices: instance.getPresetChoices(),
+					allowCustom: true,
+					regex: '/^\\d+$/',
+				},
+			],
+			callback: (feedback) => {
+				return instance.state?.ps === Number(feedback.options.preset)
+			},
+		},
 		liveDataOverride: {
 			type: 'boolean',
 			defaultStyle: { bgcolor: combineRgb(204, 0, 0), color: combineRgb(255, 255, 255) },
