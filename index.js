@@ -55,6 +55,7 @@ export default class WLEDInstance extends InstanceBase {
 		this.effectSliders = []
 		this.palettes = []
 		this.presets = {}
+		this.playlists = new Set()
 		this.presetsModified = undefined
 
 		this.initActions()
@@ -221,10 +222,13 @@ export default class WLEDInstance extends InstanceBase {
 		try {
 			const presets = await this.fetchJson('/presets.json')
 			this.presets = {}
+			this.playlists = new Set()
 			for (const [id, preset] of Object.entries(presets ?? {})) {
 				// Preset 0 is an internal placeholder, and unnamed slots are empty
 				if (Number(id) > 0 && preset?.n) {
 					this.presets[id] = preset.n
+					// A preset with a playlist starts that playlist when it is loaded
+					if (preset.playlist) this.playlists.add(Number(id))
 				}
 			}
 			this.namesUpdated()
@@ -317,8 +321,15 @@ export default class WLEDInstance extends InstanceBase {
 
 	getPresetChoices() {
 		return Object.entries(this.presets)
-			.map(([id, name]) => ({ id: Number(id), label: `${id}: ${name}` }))
+			.map(([id, name]) => ({
+				id: Number(id),
+				label: this.playlists.has(Number(id)) ? `${id}: ${name} (playlist)` : `${id}: ${name}`,
+			}))
 			.sort((a, b) => a.id - b.id)
+	}
+
+	getPlaylistChoices() {
+		return this.getPresetChoices().filter((choice) => this.playlists.has(choice.id))
 	}
 
 	getConfigFields() {

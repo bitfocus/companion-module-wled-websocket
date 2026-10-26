@@ -420,5 +420,198 @@ export function setupActions(instance) {
 				instance.send({ ps: preset })
 			},
 		},
+		cyclePreset: {
+			name: 'Next / Previous Preset',
+			description:
+				'Step through the saved presets in a range, wrapping around at the ends, or pick a random one from the range',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Direction',
+					id: 'direction',
+					default: 'next',
+					choices: [
+						{ id: 'next', label: 'Next' },
+						{ id: 'previous', label: 'Previous' },
+						{ id: 'random', label: 'Random' },
+					],
+				},
+				{
+					type: 'number',
+					label: 'First preset',
+					id: 'first',
+					default: 1,
+					min: 1,
+					max: 250,
+					clampValues: true,
+					asInteger: true,
+				},
+				{
+					type: 'number',
+					label: 'Last preset',
+					id: 'last',
+					default: 10,
+					min: 1,
+					max: 250,
+					clampValues: true,
+					asInteger: true,
+				},
+			],
+			callback: async (action) => {
+				const first = numberOption(instance, action.options.first, 'first preset')
+				const last = numberOption(instance, action.options.last, 'last preset')
+				if (first === undefined || last === undefined) return
+				if (first >= last) {
+					instance.log('warn', `First preset (${first}) must be lower than last preset (${last}), command not sent`)
+					return
+				}
+				const direction = action.options.direction
+				// Step through the presets that are actually saved: WLED's own cycling counts through every slot
+				// number, and does nothing on an empty one
+				const saved = Object.keys(instance.presets)
+					.map(Number)
+					.filter((id) => id >= first && id <= last)
+					.sort((a, b) => a - b)
+				if (saved.length === 0) {
+					// Preset names not loaded: fall back to WLED's "first~last~" (next), "first~last~-" (previous)
+					// and "first~lastr" (random)
+					const suffix = { next: '~', previous: '~-', random: 'r' }[direction] ?? '~'
+					instance.send({ ps: `${first}~${last}${suffix}` })
+					return
+				}
+				const current = instance.state?.ps ?? -1
+				let target
+				if (direction === 'random') {
+					const others = saved.filter((id) => id !== current)
+					const choices = others.length > 0 ? others : saved
+					target = choices[Math.floor(Math.random() * choices.length)]
+				} else if (direction === 'previous') {
+					target = [...saved].reverse().find((id) => id < current) ?? saved[saved.length - 1]
+				} else {
+					target = saved.find((id) => id > current) ?? saved[0]
+				}
+				instance.send({ ps: target })
+			},
+		},
+		playlistControl: {
+			name: 'Playlist Control',
+			description: 'Skip to the next entry of the running playlist, or stop it. To start a playlist, load its preset.',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'Command',
+					id: 'command',
+					default: 'next',
+					choices: [
+						{ id: 'next', label: 'Next entry' },
+						{ id: 'stop', label: 'Stop' },
+					],
+				},
+			],
+			callback: async (action) => {
+				if (action.options.command === 'stop') {
+					// WLED unloads a running playlist when a segment's effect is set outside a preset; "~0" keeps the
+					// current effect. The segment has to be given by id: WLED ignores this in the {"seg":{...}} form
+					// WLED doesn't send the new state when a playlist stops, so ask for it with "v"
+					instance.send({ seg: [{ id: instance.state?.mainseg ?? 0, fx: '~0' }], v: true })
+				} else {
+					instance.send({ np: true, v: true })
+				}
+			},
+		},
+		setTransition: {
+			name: 'Set Transition Time',
+			description: 'Set how long WLED takes to fade between changes',
+			options: [
+				{
+					type: 'number',
+					label: 'Transition time (seconds)',
+					id: 'seconds',
+					default: 0.7,
+					min: 0,
+					max: 65,
+					step: 0.1,
+					clampValues: true,
+				},
+				{
+					type: 'checkbox',
+					label: 'Only for the next change',
+					id: 'once',
+					default: false,
+					tooltip: 'Use this transition for the next change only, then return to the normal transition time',
+				},
+			],
+			callback: async (action) => {
+				const seconds = numberOption(instance, action.options.seconds, 'transition time')
+				if (seconds === undefined) return
+				// WLED counts transitions in tenths of a second
+				const tenths = Math.round(seconds * 10)
+				instance.send(action.options.once ? { tt: tenths } : { transition: tenths })
+			},
+		},
+		nightLight: {
+			name: 'Night Light',
+			description:
+				'Turn the night light timer on or off. It fades or switches to the target brightness over the duration.',
+			options: [
+				{
+					type: 'dropdown',
+					label: 'State',
+					id: 'selectedState',
+					default: 0,
+					disableAutoExpression: true,
+					choices: [
+						{ id: 0, label: 'Turn On' },
+						{ id: 1, label: 'Turn Off' },
+						{ id: 2, label: 'Toggle' },
+					],
+				},
+				{
+					type: 'number',
+					label: 'Duration (minutes)',
+					id: 'duration',
+					default: 60,
+					min: 1,
+					max: 255,
+					clampValues: true,
+					asInteger: true,
+				},
+				{
+					type: 'dropdown',
+					label: 'Mode',
+					id: 'mode',
+					default: 1,
+					choices: [
+						{ id: 0, label: 'Instant (switch at the end)' },
+						{ id: 1, label: 'Fade' },
+						{ id: 2, label: 'Color fade' },
+						{ id: 3, label: 'Sunrise' },
+					],
+				},
+				{
+					type: 'number',
+					label: 'Target brightness',
+					id: 'targetBrightness',
+					default: 0,
+					min: 0,
+					max: 255,
+					clampValues: true,
+					asInteger: true,
+				},
+			],
+			callback: async (action) => {
+				const duration = numberOption(instance, action.options.duration, 'duration')
+				const targetBrightness = numberOption(instance, action.options.targetBrightness, 'target brightness')
+				if (duration === undefined || targetBrightness === undefined) return
+				instance.send({
+					nl: {
+						on: targetPowerState(action.options.selectedState),
+						dur: duration,
+						mode: Number(action.options.mode),
+						tbri: targetBrightness,
+					},
+				})
+			},
+		},
 	})
 }
