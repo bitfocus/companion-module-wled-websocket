@@ -1,9 +1,13 @@
 import { combineRgb } from '@companion-module/base'
 
+// Default look for boolean feedbacks when they are true
+const activeStyle = { bgcolor: combineRgb(0, 204, 0), color: combineRgb(255, 255, 255) }
+
 export function setupFeedbacks(instance) {
 	instance.setFeedbackDefinitions({
 		powerState: {
 			type: 'boolean',
+			defaultStyle: activeStyle,
 			name: 'Is on',
 			description: 'True when the led is turned on, false when it is not.',
 			options: [],
@@ -13,6 +17,7 @@ export function setupFeedbacks(instance) {
 		},
 		segPowerState: {
 			type: 'boolean',
+			defaultStyle: activeStyle,
 			name: 'Segment is on',
 			description: 'True when the selected segment is turned on, false when it is not.',
 			options: [
@@ -115,6 +120,7 @@ export function setupFeedbacks(instance) {
 		},
 		liveDataOverride: {
 			type: 'boolean',
+			defaultStyle: { bgcolor: combineRgb(204, 0, 0), color: combineRgb(255, 255, 255) },
 			name: 'Live Data Override',
 			description:
 				'True when live data override is enabled (whether temporary, or until reboot), false when it is not.',

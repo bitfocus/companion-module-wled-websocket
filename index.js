@@ -5,8 +5,10 @@ import { setupActions } from './actions.js'
 import { setupFeedbacks } from './feedbacks.js'
 import { setupVariables, parseWLEDVariables } from './variables.js'
 
-// How often to ping WLED. If no pong arrives before the next ping, the connection is considered dead.
+// How often to ping WLED, and how many pings in a row may go unanswered before the connection
+// is considered dead. Allowing a few misses keeps a brief Wi-Fi hiccup from dropping the connection.
 const HEARTBEAT_INTERVAL = 5000
+const HEARTBEAT_MAX_MISSED = 3
 
 export const UpgradeScripts = upgradeScripts
 
@@ -94,14 +96,14 @@ export default class WLEDInstance extends InstanceBase {
 		ws.on('open', () => {
 			this.updateStatus(InstanceStatus.Ok)
 
-			ws.isAlive = true
+			ws.missedPongs = 0
 			this.heartbeat_timer = setInterval(() => {
-				if (!ws.isAlive) {
+				if (ws.missedPongs >= HEARTBEAT_MAX_MISSED) {
 					this.log('warn', 'No response from WLED, closing connection')
 					ws.terminate()
 					return
 				}
-				ws.isAlive = false
+				ws.missedPongs++
 				ws.ping()
 			}, HEARTBEAT_INTERVAL)
 
@@ -112,7 +114,7 @@ export default class WLEDInstance extends InstanceBase {
 			}
 		})
 		ws.on('pong', () => {
-			ws.isAlive = true
+			ws.missedPongs = 0
 		})
 		ws.on('close', (code) => {
 			this.closeWebSocket()
