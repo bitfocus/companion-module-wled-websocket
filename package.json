@@ -4,12 +4,13 @@
 	"main": "index.js",
 	"type": "module",
 	"scripts": {
-		"test": "echo \"Error: no test specified\" && exit 1",
-		"format": "prettier -w ."
+		"test": "node --experimental-vm-modules --test test/*.test.js",
+		"format": "prettier -w .",
+		"build": "node --check index.js && node --check actions.js && node --check feedbacks.js && node --check upgrade.js"
 	},
 	"license": "MIT",
 	"dependencies": {
-		"@companion-module/base": "~1.5.0",
+		"@companion-module/base": "~1.15.0",
 		"object-path": "^0.11.8",
 		"ws": "^7.2.1"
 	},
@@ -18,7 +19,12 @@
 		"url": "git+https://github.com/bitfocus/companion-module-wled-websocket.git"
 	},
 	"devDependencies": {
-		"@companion-module/tools": "^1.0.2"
+		"@companion-module/tools": "^2.9.0",
+		"prettier": "^3.6.2"
 	},
-	"prettier": "@companion-module/tools/.prettierrc.json"
+	"prettier": "@companion-module/tools/.prettierrc.json",
+	"packageManager": "yarn@1.22.22",
+	"engines": {
+		"node": "^22.20"
+	}
 }
