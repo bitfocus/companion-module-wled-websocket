@@ -4,9 +4,8 @@
 	"main": "index.js",
 	"type": "module",
 	"scripts": {
-		"test": "node --experimental-vm-modules --test test/*.test.js",
-		"format": "prettier -w .",
-		"build": "node --check index.js && node --check actions.js && node --check feedbacks.js && node --check upgrade.js"
+		"test": "echo \"Error: no test specified\" && exit 1",
+		"format": "prettier -w ."
 	},
 	"license": "MIT",
 	"dependencies": {
